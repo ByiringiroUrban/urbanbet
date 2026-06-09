@@ -54,7 +54,7 @@ export default function AviatorGame({ onClose }: AviatorGameProps) {
   };
 
   return (
-    <div className="w-full h-full min-h-[400px] bg-gradient-to-br from-bet-dark-accent to-bet-dark relative overflow-hidden">
+    <div className="w-full h-full min-h-[400px] bg-bet-primary relative overflow-hidden">
       <div className="absolute inset-0 flex items-center justify-center">
         <div className="text-center z-10">
           {!isFlying && !hasCrashed && (

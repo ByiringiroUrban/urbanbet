@@ -1,17 +1,15 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { useToast } from "@/components/ui/use-toast";
-import { isAuthenticated } from "@/utils/authUtils";
+import { isLoggedIn as checkLoggedIn } from "@/utils/authUtils";
 import UserProfile from "@/components/dashboard/UserProfile";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { getBetHistory } from "@/services/bettingService";
 import { getAIPredictions } from "@/services/predictionsService";
 import { useAuth } from "@/hooks/useAuth";
 import { BetRecord } from "@/services/database/types";
-import { BettingProvider } from "@/contexts/BettingContext";
+import Layout from "@/components/Layout";
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -87,7 +85,7 @@ const Dashboard = () => {
 
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-bet-dark">
         <div className="animate-pulse text-center">
           <h2 className="text-2xl font-bold mb-2">Loading Dashboard...</h2>
           <p className="text-muted-foreground">Retrieving your betting information</p>
@@ -97,32 +95,22 @@ const Dashboard = () => {
   }
 
   return (
-    <BettingProvider>
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
+    <Layout>
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6">
+        <div className="w-full md:w-1/4">
+          <UserProfile userData={userData} />
+        </div>
         
-        <main className="flex-1 py-8 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start gap-6">
-              <div className="w-full md:w-1/4">
-                <UserProfile userData={userData} />
-              </div>
-              
-              <div className="w-full md:w-3/4">
-                <DashboardTabs 
-                  betHistory={betHistory}
-                  loadingBets={loadingBets}
-                  aiPredictions={aiPredictions}
-                  loadingPredictions={loadingPredictions}
-                />
-              </div>
-            </div>
-          </div>
-        </main>
-        
-        <Footer />
+        <div className="w-full md:w-3/4">
+          <DashboardTabs 
+            betHistory={betHistory}
+            loadingBets={loadingBets}
+            aiPredictions={aiPredictions}
+            loadingPredictions={loadingPredictions}
+          />
+        </div>
       </div>
-    </BettingProvider>
+    </Layout>
   );
 };
 

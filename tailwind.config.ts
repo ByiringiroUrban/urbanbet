@@ -64,13 +64,13 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				bet: {
-					primary: '#4F46E5',
+					primary: '#a3e635',
 					secondary: '#10B981',
-					accent: '#8B5CF6',
+					accent: '#a3e635',
 					warning: '#F59E0B',
 					danger: '#EF4444',
-					dark: '#111827',
-					'dark-accent': '#1F2937',
+					dark: '#05070f',
+					'dark-accent': '#0a0e1b',
 					light: '#F9FAFB',
 				},
 			},

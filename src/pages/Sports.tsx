@@ -1,37 +1,13 @@
-
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
-import { Search, FilterIcon, ChevronRight, ChevronDown, CircleDot, Circle, User, Dribbble } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  SidebarProvider,
-  Sidebar,
-  SidebarContent,
-  SidebarHeader,
-  SidebarTrigger,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuButton,
-} from "@/components/ui/sidebar";
-
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Layout from "@/components/Layout";
 import UpcomingMatchCard from "@/components/UpcomingMatchCard";
-import { sportsCategories, SportCategory, Country, League } from "@/data/sportsData";
+import { sportsCategories } from "@/data/sportsData";
 import { isAuthenticated } from "@/utils/authUtils";
+import { dbFallback } from "@/utils/dbFallback";
 
 // Define TypeScript interfaces for our data structure
 interface BaseMatch {
@@ -47,12 +23,10 @@ interface BaseMatch {
   leagueId?: string;
 }
 
-// For sports that have draws (like football)
 interface MatchWithDraw extends BaseMatch {
   drawOdds: number;
 }
 
-// Type guard to check if a match has drawOdds
 function hasDrawOdds(match: BaseMatch): match is MatchWithDraw {
   return 'drawOdds' in match;
 }
@@ -229,50 +203,40 @@ const sportsData: Record<string, (BaseMatch | MatchWithDraw)[]> = {
   ]
 };
 
-const SportIcon = ({ sportId }: { sportId: string }) => {
-  switch (sportId) {
-    case 'football':
-      return <CircleDot className="h-5 w-5" />;
-    case 'basketball':
-      return <Dribbble className="h-5 w-5" />;
-    case 'tennis':
-      return <Circle className="h-5 w-5" />;
-    default:
-      return <Circle className="h-5 w-5" />;
-  }
-};
-
 export default function Sports() {
   const { sport = "football", country, league } = useParams();
-  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [matchesView, setMatchesView] = useState("all");
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   
-  // Validate sport parameter
-  const validSport = Object.keys(sportsData).includes(sport) ? sport : "football";
+  const [allEvents, setAllEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+    setAllEvents(dbFallback.getEvents());
+  }, []);
+
+  const validSport = ["football", "basketball", "tennis"].includes(sport) ? sport : "football";
+  let matches = allEvents.filter(match => match.sportId === validSport);
   
-  // Find all matches for the current sport
-  let matches = sportsData[validSport as keyof typeof sportsData] || [];
-  
-  // Filter by league if provided
   if (league) {
-    matches = matches.filter(match => (match as any).leagueId === league);
-  }
-  // Filter by country if provided (check leagues in that country)
-  else if (country) {
+    matches = matches.filter(match => 
+      (match as any).leagueId === league || 
+      match.league?.toLowerCase().replace(/\s+/g, '-') === league
+    );
+  } else if (country) {
     const sportCategory = sportsCategories.find(sc => sc.id === validSport);
     if (sportCategory) {
       const countryData = sportCategory.countries.find(c => c.id === country);
       if (countryData) {
         const leagueIds = countryData.leagues.map(l => l.id);
-        matches = matches.filter(match => leagueIds.includes((match as any).leagueId || ''));
+        matches = matches.filter(match => 
+          leagueIds.includes((match as any).leagueId || '') || 
+          match.country?.toLowerCase() === country
+        );
       }
     }
   }
   
-  // Further filter matches based on search and view
   const filteredMatches = matches.filter(match => {
     const matchesSearch = 
       match.homeTeam.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -291,13 +255,8 @@ export default function Sports() {
     setIsLoggedIn(isAuthenticated());
   }, []);
 
-  const handleSportChange = (newSport: string) => {
-    navigate(`/sports/${newSport}`);
-  };
-
   const getPageTitle = () => {
     if (league) {
-      // Find league name
       const sportCategory = sportsCategories.find(sc => sc.id === validSport);
       if (sportCategory) {
         for (const countryData of sportCategory.countries) {
@@ -311,7 +270,6 @@ export default function Sports() {
     }
     
     if (country) {
-      // Find country name
       const sportCategory = sportsCategories.find(sc => sc.id === validSport);
       if (sportCategory) {
         const countryData = sportCategory.countries.find(c => c.id === country);
@@ -322,177 +280,73 @@ export default function Sports() {
       return country.replace(/-/g, ' ');
     }
     
-    // Default to sport name
     const sportCategory = sportsCategories.find(sc => sc.id === validSport);
     return sportCategory ? sportCategory.name : validSport.replace(/-/g, ' ');
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <div className="flex-grow flex">
-        <SidebarProvider defaultOpen={!isCollapsed}>
-          <Sidebar variant="inset" className="bg-background border-r">
-            <SidebarHeader className="p-4">
-              <h3 className="text-lg font-semibold">Sports</h3>
-              <div className="relative mb-2 mt-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input 
-                  type="text" 
-                  placeholder="Search sports & leagues..." 
-                  className="pl-10 h-9"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </SidebarHeader>
-            
-            <SidebarContent>
-              <Accordion type="multiple" defaultValue={[validSport]}>
-                {sportsCategories.map((category) => (
-                  <AccordionItem key={category.id} value={category.id}>
-                    <AccordionTrigger className="py-2 px-4 hover:no-underline">
-                      <div className="flex items-center gap-3">
-                        <SportIcon sportId={category.id} />
-                        <span>{category.name}</span>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <SidebarMenu>
-                        {/* All matches for this sport */}
-                        <SidebarMenuItem key={`all-${category.id}`}>
-                          <SidebarMenuButton 
-                            asChild 
-                            isActive={validSport === category.id && !country && !league}
-                          >
-                            <Link to={`/sports/${category.id}`}>
-                              All {category.name}
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        
-                        {/* Countries and leagues */}
-                        {category.countries.map((countryData) => (
-                          <Collapsible key={countryData.id}>
-                            <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-accent hover:text-accent-foreground rounded-md text-sm">
-                              <span>{countryData.name}</span>
-                              <ChevronRight className="h-4 w-4" />
-                            </CollapsibleTrigger>
-                            <CollapsibleContent>
-                              <div className="pl-2">
-                                {/* Link to all leagues in this country */}
-                                <SidebarMenuItem key={`country-${countryData.id}`}>
-                                  <SidebarMenuButton 
-                                    asChild 
-                                    isActive={validSport === category.id && country === countryData.id && !league}
-                                  >
-                                    <Link to={`/sports/${category.id}/${countryData.id}`}>
-                                      All {countryData.name} Leagues
-                                    </Link>
-                                  </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                
-                                {/* Individual leagues */}
-                                {countryData.leagues.map((leagueData) => (
-                                  <SidebarMenuItem key={leagueData.id}>
-                                    <SidebarMenuButton 
-                                      asChild 
-                                      isActive={validSport === category.id && league === leagueData.id}
-                                    >
-                                      <Link to={`/sports/${category.id}/${countryData.id}/${leagueData.id}`}>
-                                        {leagueData.name}
-                                      </Link>
-                                    </SidebarMenuButton>
-                                  </SidebarMenuItem>
-                                ))}
-                              </div>
-                            </CollapsibleContent>
-                          </Collapsible>
-                        ))}
-                      </SidebarMenu>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
-            </SidebarContent>
-          </Sidebar>
+    <Layout>
+      <div className="flex flex-col gap-6">
+        {/* Header Title */}
+        <div>
+          <h1 className="text-2xl font-black uppercase text-white tracking-tight">{getPageTitle()}</h1>
+          <p className="text-muted-foreground text-xs mt-1">
+            Browse available matches and place your bets
+          </p>
+        </div>
+        
+        {/* View Options */}
+        <div className="bg-card/40 border border-border/60 rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4 items-center">
+          <div className="relative w-full md:max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/60 h-4 w-4" />
+            <Input 
+              type="text" 
+              placeholder="Search for matches..." 
+              className="pl-9 h-9 bg-bet-dark/60 border-border/50 text-sm focus-visible:ring-bet-primary"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
           
-          <main className="flex-1 p-4">
-            <div className="max-w-7xl mx-auto">
-              {/* Sports page content */}
-              <div className="flex items-center justify-between mb-6">
-                <div>
-                  <h1 className="text-3xl font-bold">{getPageTitle()}</h1>
-                  <p className="text-muted-foreground">
-                    Browse available matches and place your bets
-                  </p>
-                </div>
-                <SidebarTrigger 
-                  className="h-9 w-9"
-                  onClick={() => setIsCollapsed(!isCollapsed)} 
-                />
-              </div>
-              
-              {/* View Options */}
-              <div className="bg-card rounded-lg p-4 mb-6 shadow-sm">
-                <div className="flex flex-col md:flex-row justify-between gap-4">
-                  <div className="relative max-w-sm">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                    <Input 
-                      type="text" 
-                      placeholder="Search for matches..." 
-                      className="pl-10"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  
-                  <Tabs 
-                    defaultValue="all" 
-                    value={matchesView}
-                    onValueChange={setMatchesView}
-                    className="w-full md:w-auto"
-                  >
-                    <TabsList className="grid grid-cols-3 w-full md:w-auto">
-                      <TabsTrigger value="all">All Matches</TabsTrigger>
-                      <TabsTrigger value="live">Live Now</TabsTrigger>
-                      <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
-                </div>
-              </div>
-              
-              {/* Matches Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredMatches.length > 0 ? (
-                  filteredMatches.map((match, index) => (
-                    <UpcomingMatchCard
-                      key={match.id || `${validSport}-${index}`}
-                      id={match.id || `${validSport}-${index}`}
-                      homeTeam={match.homeTeam}
-                      awayTeam={match.awayTeam}
-                      league={match.league}
-                      time={match.time}
-                      date={match.date}
-                      homeOdds={match.homeOdds}
-                      drawOdds={hasDrawOdds(match) ? match.drawOdds : undefined}
-                      awayOdds={match.awayOdds}
-                      isLive={match.isLive}
-                    />
-                  ))
-                ) : (
-                  <div className="col-span-full text-center py-12">
-                    <p className="text-muted-foreground">No matches found matching your search criteria</p>
-                  </div>
-                )}
-              </div>
+          <Tabs 
+            defaultValue="all" 
+            value={matchesView}
+            onValueChange={setMatchesView}
+            className="w-full md:w-auto"
+          >
+            <TabsList className="grid grid-cols-3 w-full md:w-auto bg-bet-dark/60 h-9 p-0.5 border border-border/50">
+              <TabsTrigger value="all" className="text-xs font-bold py-1.5 px-3">All Matches</TabsTrigger>
+              <TabsTrigger value="live" className="text-xs font-bold py-1.5 px-3">Live Now</TabsTrigger>
+              <TabsTrigger value="upcoming" className="text-xs font-bold py-1.5 px-3">Upcoming</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+        
+        {/* Matches Stack */}
+        <div className="flex flex-col gap-4">
+          {filteredMatches.length > 0 ? (
+            filteredMatches.map((match, index) => (
+              <UpcomingMatchCard
+                key={match.id || `${validSport}-${index}`}
+                id={match.id || `${validSport}-${index}`}
+                homeTeam={match.homeTeam}
+                awayTeam={match.awayTeam}
+                league={match.league}
+                time={match.time}
+                date={match.date}
+                homeOdds={match.homeOdds}
+                drawOdds={hasDrawOdds(match) ? match.drawOdds : undefined}
+                awayOdds={match.awayOdds}
+                isLive={match.isLive}
+              />
+            ))
+          ) : (
+            <div className="text-center py-16 border border-dashed border-border/60 rounded-xl bg-card/25">
+              <p className="text-sm text-muted-foreground">No matches found matching your search criteria</p>
             </div>
-          </main>
-        </SidebarProvider>
+          )}
+        </div>
       </div>
-      
-      <Footer />
-    </div>
+    </Layout>
   );
 }

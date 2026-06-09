@@ -35,7 +35,7 @@ const Terms = () => {
       <main className="flex-1 py-12 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Terms and Conditions</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-bet-primary">Terms and Conditions</h1>
             <p className="text-muted-foreground">
               Last updated: March 15, 2025
             </p>

@@ -1,10 +1,9 @@
-
-import { Brain, TrendingUp, ArrowRight } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Brain, TrendingUp, ChevronDown, ChevronUp } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useBetting } from "@/contexts/BettingContext";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
 
 interface AIInsightCardProps {
   match: string;
@@ -25,17 +24,17 @@ export default function AIInsightCard({
 }: AIInsightCardProps) {
   const betting = useBetting();
   const [isAdded, setIsAdded] = useState(false);
+  const [showAnalysis, setShowAnalysis] = useState(false);
   
-  // Determine confidence color
-  const getConfidenceColor = () => {
-    if (confidence >= 75) return "text-bet-secondary";
-    if (confidence >= 50) return "text-bet-warning";
-    return "text-bet-danger";
+  // Determine confidence color text and bg
+  const getConfidenceStyle = () => {
+    if (confidence >= 75) return "bg-green-500/10 text-green-500 border-green-500/20";
+    if (confidence >= 60) return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20";
+    return "bg-red-500/10 text-red-500 border-red-500/20";
   };
   
   // Handle adding to betting slip
   const handleAddToBettingSlip = () => {
-    // Parse odds from string (example: "2.10")
     const numericOdds = parseFloat(odds.split(' ')[0]);
     
     if (!isNaN(numericOdds)) {
@@ -46,68 +45,77 @@ export default function AIInsightCard({
       });
       
       setIsAdded(true);
-      
-      // Reset button after 3 seconds
       setTimeout(() => {
         setIsAdded(false);
-      }, 3000);
+      }, 2000);
     }
   };
 
   return (
-    <Card className="card-highlight overflow-hidden hover-scale transition-all duration-300 bg-card border-border/50 bet-shadow">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-semibold">{match}</CardTitle>
-          <Badge className="bg-bet-accent/20 text-bet-accent hover:bg-bet-accent/30">
-            <Brain size={14} className="mr-1" /> AI Insight
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="mb-3">
-          <div className="text-sm text-muted-foreground mb-1">AI Prediction:</div>
-          <div className="font-medium text-bet-primary">{prediction}</div>
-        </div>
+    <Card className="overflow-hidden hover:border-bet-primary/30 transition-all duration-300 bg-card border-border/60 p-4 flex flex-col gap-3">
+      {/* Top Header: Match & Confidence Pill */}
+      <div className="flex justify-between items-start gap-2">
+        <h3 className="text-sm font-bold text-white tracking-tight leading-tight">{match}</h3>
+        <Badge className={cn("text-[9px] font-black shrink-0 px-2 py-0.5 rounded border shadow-none", getConfidenceStyle())}>
+          {confidence}% CONF
+        </Badge>
+      </div>
 
-        <div className="mb-3">
-          <div className="flex justify-between items-center text-sm text-muted-foreground mb-1">
-            <span>Confidence:</span>
-            <span className={`font-medium ${getConfidenceColor()}`}>{confidence}%</span>
-          </div>
-          <div className="w-full bg-muted rounded-full h-2">
-            <div 
-              className={`h-2 rounded-full ${confidence >= 75 ? 'bg-bet-secondary' : confidence >= 50 ? 'bg-bet-warning' : 'bg-bet-danger'}`}
-              style={{ width: `${confidence}%` }}
-            ></div>
-          </div>
+      {/* Main Prediction and Betting Trigger Row */}
+      <div className="flex items-center justify-between gap-4 bg-bet-dark/25 p-2.5 rounded-lg border border-border/40">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">AI TIP</span>
+          <span className="text-xs font-black text-white">{prediction}</span>
         </div>
-
-        <div className="mb-3">
-          <div className="text-sm text-muted-foreground mb-1">Analysis:</div>
-          <p className="text-sm text-foreground/90">{analysis}</p>
-        </div>
-
-        {trend && (
-          <div className="flex items-center text-sm text-bet-secondary mb-3">
-            <TrendingUp size={16} className="mr-1" />
-            <span>{trend}</span>
-          </div>
-        )}
-
-        <div className="text-sm text-muted-foreground mb-1">Recommended Odds:</div>
-        <div className="font-semibold">{odds}</div>
-      </CardContent>
-      <CardFooter>
-        <Button 
-          variant={isAdded ? "default" : "outline"} 
-          className={`w-full ${isAdded ? 'bg-bet-secondary hover:bg-bet-secondary/90' : ''}`}
+        
+        {/* Odds Button */}
+        <button
           onClick={handleAddToBettingSlip}
+          className={cn(
+            "h-8 px-4 rounded text-xs font-black tracking-wide transition-all active:scale-95 flex items-center justify-center gap-1 min-w-[70px]",
+            isAdded
+              ? "bg-green-500 text-white font-bold"
+              : "bg-bet-primary text-bet-primary-foreground hover:bg-bet-primary/90"
+          )}
         >
-          {isAdded ? "Added to Slip ✓" : "Add to Betting Slip"} 
-          {!isAdded && <ArrowRight size={16} className="ml-1" />}
-        </Button>
-      </CardFooter>
+          {isAdded ? (
+            <span>ADDED ✓</span>
+          ) : (
+            <>
+              <span className="opacity-70 text-[9px] mr-0.5 font-bold">ODDS</span>
+              <span>{parseFloat(odds).toFixed(2)}</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      {/* Toggle Analysis Link */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowAnalysis(!showAnalysis)}
+          className="text-[10px] font-bold text-muted-foreground hover:text-white flex items-center gap-0.5 transition-colors"
+        >
+          <span>{showAnalysis ? "Hide Details" : "Why this tip?"}</span>
+          {showAnalysis ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        </button>
+      </div>
+
+      {/* Expandable Analysis Body */}
+      {showAnalysis && (
+        <div className="text-[11px] text-muted-foreground/90 border-t border-border/30 pt-2.5 flex flex-col gap-2 animate-accordion-down">
+          <div>
+            <span className="font-bold text-white block mb-0.5">AI Analysis:</span>
+            <p className="leading-relaxed">{analysis}</p>
+          </div>
+          
+          {trend && (
+            <div className="flex items-center gap-1 bg-bet-primary/5 p-2 rounded border border-bet-primary/10 text-bet-primary font-semibold">
+              <TrendingUp size={12} className="shrink-0" />
+              <span>{trend}</span>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }

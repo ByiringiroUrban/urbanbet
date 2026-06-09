@@ -115,7 +115,7 @@ export default function CasinoGameModal({ open, onClose, game }: CasinoGameModal
               {(game.category === 'aviator' || game.title.toLowerCase().includes('aviator')) ? (
                 <AviatorGame onClose={onClose} />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bet-primary/20 to-bet-accent/20 text-white">
+                <div className="w-full h-full flex items-center justify-center bg-bet-primary text-white">
                   <div className="text-center p-8 max-w-md">
                     <h3 className="text-2xl font-bold mb-4">Playing {game.title}</h3>
                     <p className="mb-4">In a production environment, this would load the actual game from {game.provider}.</p>

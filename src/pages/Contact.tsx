@@ -70,7 +70,7 @@ const Contact = () => {
       <main className="flex-1 py-12 px-4">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-10">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Contact Us</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4 text-bet-primary">Contact Us</h1>
             <p className="text-muted-foreground max-w-2xl mx-auto">
               We're here to help! Reach out to our team with any questions, concerns, or feedback. 
               Our customer support team is available 24/7.

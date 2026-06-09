@@ -32,7 +32,9 @@ export default function CallToActionSection() {
       <div 
         className="absolute inset-0" 
         style={{
-          backgroundImage: "linear-gradient(to right, rgba(17, 24, 39, 0.9), rgba(17, 24, 39, 0.7)), url('https://images.unsplash.com/photo-1562016600-ece13e8ba570?q=80&w=1600&auto=format&fit=crop')",
+          backgroundColor: "rgba(17, 24, 39, 0.8)",
+          backgroundImage: "url('https://images.unsplash.com/photo-1562016600-ece13e8ba570?q=80&w=1600&auto=format&fit=crop')",
+          backgroundBlendMode: "overlay",
           backgroundSize: "cover",
           backgroundPosition: "center",
           zIndex: -1
@@ -40,7 +42,7 @@ export default function CallToActionSection() {
       />
       
       <div className="max-w-3xl mx-auto text-center">
-        <h2 className="text-3xl md:text-4xl font-bold mb-4 gradient-text">Ready to Experience Smarter Betting?</h2>
+        <h2 className="text-3xl md:text-4xl font-bold mb-4 text-bet-primary">Ready to Experience Smarter Betting?</h2>
         <p className="text-lg text-white/80 mb-8">Join Urban Bet today and get access to AI-powered predictions, competitive odds, and a secure betting platform.</p>
         
         <div className="flex flex-col sm:flex-row justify-center gap-4">

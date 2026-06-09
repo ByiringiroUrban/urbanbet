@@ -20,7 +20,7 @@ export default function SportsBettingSection({ upcomingMatches }: SportsBettingS
   };
 
   return (
-    <section className="py-16 px-4 bg-gradient-to-b from-background to-background/95">
+    <section className="py-12 px-4 bg-bet-dark/20 border-t border-border/40">
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -32,7 +32,7 @@ export default function SportsBettingSection({ upcomingMatches }: SportsBettingS
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="flex flex-col gap-4">
           {upcomingMatches.map((match) => (
             <UpcomingMatchCard
               key={match.id}

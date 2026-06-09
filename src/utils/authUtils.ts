@@ -1,4 +1,5 @@
 import { mongoService } from '@/services/mongoService';
+import { logout as apiLogout } from '@/services/authService';
 import { supabase } from '@/integrations/supabase/client';
 
 // Interface for the return type of saveUser
@@ -103,24 +104,13 @@ export const socialLogin = async (provider: 'google' | 'facebook' | 'apple') => 
 
 // Check if user is authenticated
 export const isAuthenticated = () => {
-  return localStorage.getItem('userToken') !== null;
+  return localStorage.getItem('accessToken') !== null;
 };
 
 // Logout function
 export const logout = async () => {
   try {
-    // First try to sign out from Supabase
-    await supabase.auth.signOut();
-    
-    // Then clear local storage
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userProvider');
-    
-    // Dispatch a custom event to notify other components about auth state change
-    window.dispatchEvent(new CustomEvent('authChange'));
-    
+    await apiLogout();
     return true;
   } catch (error) {
     console.error("Error during logout:", error);
@@ -153,26 +143,11 @@ export const listenForAuthChanges = (callback: () => void) => {
 
 // Check if current user is an admin
 export const isAdmin = async (): Promise<boolean> => {
-  try {
-    // First check if user is authenticated
-    if (!isAuthenticated()) {
-      return false;
-    }
-    
-    const { data, error } = await supabase.rpc('has_role', {
-      '_role': 'admin'
-    });
-    
-    if (error) {
-      console.error("Error checking admin status:", error);
-      return false;
-    }
-    
-    return data === true;
-  } catch (error) {
-    console.error("Error in admin check:", error);
+  if (!isAuthenticated()) {
     return false;
   }
+
+  return localStorage.getItem('userRole') === 'admin';
 };
 
 // Function to create the first admin in the system using the create_first_admin function

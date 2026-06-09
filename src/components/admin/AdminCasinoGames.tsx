@@ -7,19 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
-import { Pencil, Trash, Plus, Save, Image } from "lucide-react";
-
-// Define the casino game type
-interface CasinoGame {
-  id: string;
-  title: string;
-  provider: string;
-  imageSrc: string;
-  category: string;
-  isNew: boolean;
-  isPopular: boolean;
-}
+import { dbFallback, CasinoGame } from "@/utils/dbFallback";
+import { Pencil, Trash, Plus, Save } from "lucide-react";
 
 const categories = [
   { id: "slots", name: "Slots" },
@@ -46,9 +35,9 @@ export default function AdminCasinoGames() {
   // New game form state
   const [formData, setFormData] = useState({
     title: "",
-    provider: "",
-    imageSrc: "",
-    category: "",
+    provider: "NetPlay",
+    imageSrc: "https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop",
+    category: "slots",
     isNew: false,
     isPopular: false
   });
@@ -60,66 +49,18 @@ export default function AdminCasinoGames() {
     loadGames();
   }, []);
 
-  const loadGames = async () => {
+  const loadGames = () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('casino_games')
-        .select('*')
-        .order('title', { ascending: true });
-      
-      if (error) throw error;
-      
-      // Transform to match CasinoGame type if needed
-      const transformedGames = (data || []).map(game => ({
-        id: game.id,
-        title: game.title,
-        provider: game.provider,
-        imageSrc: game.image_src,
-        category: game.category,
-        isNew: game.is_new || false,
-        isPopular: game.is_popular || false
-      }));
-      
-      setGames(transformedGames);
+      const data = dbFallback.getCasinoGames();
+      setGames(data);
     } catch (error) {
       console.error('Error loading casino games:', error);
       toast({
         title: "Error",
-        description: "Failed to load casino games. Using mock data.",
+        description: "Failed to load casino games.",
         variant: "destructive",
       });
-      
-      // Mock data for casino games
-      setGames([
-        {
-          id: "1",
-          title: "Neon City Slots",
-          imageSrc: "https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop",
-          provider: "NetPlay",
-          isNew: true,
-          isPopular: false,
-          category: "slots"
-        },
-        {
-          id: "2",
-          title: "Royal Blackjack",
-          imageSrc: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2073&auto=format&fit=crop",
-          provider: "Evolution Gaming",
-          isNew: false,
-          isPopular: true,
-          category: "table"
-        },
-        {
-          id: "3",
-          title: "Live Dealer Blackjack",
-          imageSrc: "https://images.unsplash.com/photo-1522542550221-31fd19575a2d?q=80&w=2070&auto=format&fit=crop",
-          provider: "Evolution Gaming",
-          isNew: false,
-          isPopular: true,
-          category: "live"
-        }
-      ]);
     } finally {
       setLoading(false);
     }
@@ -169,9 +110,8 @@ export default function AdminCasinoGames() {
     });
   };
 
-  const handleCreateGame = async () => {
+  const handleCreateGame = () => {
     try {
-      // Validate form
       if (!formData.title || !formData.provider || !formData.imageSrc || !formData.category) {
         toast({
           title: "Error",
@@ -181,19 +121,7 @@ export default function AdminCasinoGames() {
         return;
       }
       
-      // Format data for Supabase
-      const gameData = {
-        title: formData.title,
-        provider: formData.provider,
-        image_src: formData.imageSrc,
-        category: formData.category,
-        is_new: formData.isNew,
-        is_popular: formData.isPopular
-      };
-      
-      const { error } = await supabase.from('casino_games').insert([gameData]);
-      
-      if (error) throw error;
+      dbFallback.saveCasinoGame(formData);
       
       toast({
         title: "Success",
@@ -203,80 +131,34 @@ export default function AdminCasinoGames() {
       // Reset form
       setFormData({
         title: "",
-        provider: "",
-        imageSrc: "",
-        category: "",
+        provider: "NetPlay",
+        imageSrc: "https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop",
+        category: "slots",
         isNew: false,
         isPopular: false
       });
       
-      // Reload games
-      await loadGames();
+      loadGames();
     } catch (error) {
       console.error('Error creating casino game:', error);
       toast({
-        title: "Success",
-        description: "Casino game created successfully (mock).",
-      });
-      
-      // Add to local state as fallback
-      const newGame = {
-        id: Date.now().toString(),
-        title: formData.title,
-        provider: formData.provider,
-        imageSrc: formData.imageSrc,
-        category: formData.category,
-        isNew: formData.isNew,
-        isPopular: formData.isPopular
-      };
-      
-      setGames(prev => [...prev, newGame]);
-      
-      // Reset form
-      setFormData({
-        title: "",
-        provider: "",
-        imageSrc: "",
-        category: "",
-        isNew: false,
-        isPopular: false
+        title: "Error",
+        description: "Failed to create casino game.",
+        variant: "destructive",
       });
     }
   };
 
   const handleEditGame = (game: CasinoGame) => {
     setEditMode(game.id);
-    setEditData({
-      id: game.id,
-      title: game.title,
-      provider: game.provider,
-      imageSrc: game.imageSrc,
-      category: game.category,
-      isNew: game.isNew,
-      isPopular: game.isPopular
-    });
+    setEditData(game);
   };
 
-  const handleSaveEdit = async () => {
+  const handleSaveEdit = () => {
     if (!editMode || !editData.id) return;
     
     try {
-      // Format data for Supabase
-      const gameData = {
-        title: editData.title,
-        provider: editData.provider,
-        image_src: editData.imageSrc,
-        category: editData.category,
-        is_new: editData.isNew,
-        is_popular: editData.isPopular
-      };
-      
-      const { error } = await supabase
-        .from('casino_games')
-        .update(gameData)
-        .eq('id', editData.id);
-      
-      if (error) throw error;
+      dbFallback.saveCasinoGame(editData);
       
       toast({
         title: "Success",
@@ -285,72 +167,56 @@ export default function AdminCasinoGames() {
       
       setEditMode(null);
       setEditData({});
-      
-      // Reload games
-      await loadGames();
+      loadGames();
     } catch (error) {
       console.error('Error updating casino game:', error);
       toast({
-        title: "Success",
-        description: "Casino game updated successfully (mock).",
+        title: "Error",
+        description: "Failed to update casino game.",
+        variant: "destructive",
       });
-      
-      // Update local state as fallback
-      setGames(prev => prev.map(game => 
-        game.id === editData.id 
-          ? { ...game, ...editData as CasinoGame } 
-          : game
-      ));
-      
-      setEditMode(null);
-      setEditData({});
     }
   };
 
-  const handleDeleteGame = async (id: string) => {
+  const handleDeleteGame = (id: string) => {
     if (!window.confirm('Are you sure you want to delete this casino game?')) return;
     
     try {
-      const { error } = await supabase.from('casino_games').delete().eq('id', id);
-      
-      if (error) throw error;
+      dbFallback.deleteCasinoGame(id);
       
       toast({
         title: "Success",
         description: "Casino game deleted successfully.",
       });
       
-      // Reload games
-      await loadGames();
+      loadGames();
     } catch (error) {
       console.error('Error deleting casino game:', error);
       toast({
-        title: "Success",
-        description: "Casino game deleted successfully (mock).",
+        title: "Error",
+        description: "Failed to delete casino game.",
+        variant: "destructive",
       });
-      
-      // Update local state as fallback
-      setGames(prev => prev.filter(game => game.id !== id));
     }
   };
 
   return (
     <div>
-      <h2 className="text-2xl font-bold mb-6">Manage Casino Games</h2>
+      <h2 className="text-xl font-black uppercase text-white tracking-tight mb-6">Manage Casino Games</h2>
       
       {/* Create Game Form */}
-      <div className="bg-card border border-border rounded-lg p-6 mb-8">
-        <h3 className="text-xl font-semibold mb-4">Create New Casino Game</h3>
+      <div className="bg-[#070a13] border border-slate-800 rounded-xl p-6 mb-8">
+        <h3 className="text-sm font-black text-white uppercase tracking-wider mb-4">Create New Casino Game</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <Label htmlFor="title">Game Title*</Label>
-            <Input id="title" name="title" value={formData.title} onChange={handleInputChange} placeholder="Game Title" />
+            <Input id="title" name="title" value={formData.title} onChange={handleInputChange} placeholder="Game Title" className="bg-[#0a0e1b] border-slate-800" />
           </div>
           
           <div>
             <Label htmlFor="provider">Provider*</Label>
             <Select value={formData.provider} onValueChange={(value) => handleSelectChange('provider', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-[#0a0e1b] border-slate-800">
                 <SelectValue placeholder="Select Provider" />
               </SelectTrigger>
               <SelectContent>
@@ -364,7 +230,7 @@ export default function AdminCasinoGames() {
           <div>
             <Label htmlFor="category">Category*</Label>
             <Select value={formData.category} onValueChange={(value) => handleSelectChange('category', value)}>
-              <SelectTrigger>
+              <SelectTrigger className="bg-[#0a0e1b] border-slate-800">
                 <SelectValue placeholder="Select Category" />
               </SelectTrigger>
               <SelectContent>
@@ -377,7 +243,7 @@ export default function AdminCasinoGames() {
           
           <div>
             <Label htmlFor="imageSrc">Image URL*</Label>
-            <Input id="imageSrc" name="imageSrc" value={formData.imageSrc} onChange={handleInputChange} placeholder="Image URL" />
+            <Input id="imageSrc" name="imageSrc" value={formData.imageSrc} onChange={handleInputChange} placeholder="Image URL" className="bg-[#0a0e1b] border-slate-800" />
           </div>
           
           <div className="flex items-center space-x-8 mt-6">
@@ -393,28 +259,28 @@ export default function AdminCasinoGames() {
           </div>
         </div>
         
-        <Button className="mt-4" onClick={handleCreateGame}>
-          <Plus className="mr-2 h-4 w-4" /> Create Game
+        <Button className="mt-6 bg-bet-primary text-black font-black hover:bg-bet-primary/85" onClick={handleCreateGame}>
+          <Plus className="mr-2 h-4 w-4 stroke-[3]" /> Create Game
         </Button>
       </div>
       
       {/* Games Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
+      <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#070a13]">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-10"></TableHead>
-              <TableHead>Title</TableHead>
-              <TableHead>Provider</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>New</TableHead>
-              <TableHead>Popular</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+          <TableHeader className="bg-[#0a0e1b]">
+            <TableRow className="border-slate-800">
+              <TableHead className="w-12 text-slate-400"></TableHead>
+              <TableHead className="text-slate-400">Title</TableHead>
+              <TableHead className="text-slate-400">Provider</TableHead>
+              <TableHead className="text-slate-400">Category</TableHead>
+              <TableHead className="text-slate-400">New</TableHead>
+              <TableHead className="text-slate-400">Popular</TableHead>
+              <TableHead className="text-right text-slate-400">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow>
+              <TableRow className="border-slate-800">
                 <TableCell colSpan={7} className="text-center py-8">
                   <div className="flex justify-center">
                     <div className="w-6 h-6 border-2 border-bet-primary border-t-transparent rounded-full animate-spin"></div>
@@ -423,12 +289,12 @@ export default function AdminCasinoGames() {
               </TableRow>
             ) : games.length > 0 ? (
               games.map(game => (
-                <TableRow key={game.id}>
+                <TableRow key={game.id} className="border-slate-800 hover:bg-slate-900/30">
                   {editMode === game.id ? (
                     // Edit Mode
                     <>
                       <TableCell>
-                        <div className="w-10 h-10 rounded bg-background relative overflow-hidden">
+                        <div className="w-10 h-10 rounded bg-[#0a0e1b] relative overflow-hidden">
                           <img 
                             src={editData.imageSrc || ''} 
                             alt={editData.title || ''}
@@ -441,6 +307,7 @@ export default function AdminCasinoGames() {
                           name="title" 
                           value={editData.title || ''} 
                           onChange={handleEditInputChange} 
+                          className="h-8 bg-[#0a0e1b] border-slate-800"
                         />
                       </TableCell>
                       <TableCell>
@@ -448,7 +315,7 @@ export default function AdminCasinoGames() {
                           value={editData.provider || ''} 
                           onValueChange={(value) => handleEditSelectChange('provider', value)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 bg-[#0a0e1b] border-slate-800">
                             <SelectValue placeholder="Select Provider" />
                           </SelectTrigger>
                           <SelectContent>
@@ -463,7 +330,7 @@ export default function AdminCasinoGames() {
                           value={editData.category || ''} 
                           onValueChange={(value) => handleEditSelectChange('category', value)}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="h-8 bg-[#0a0e1b] border-slate-800">
                             <SelectValue placeholder="Select Category" />
                           </SelectTrigger>
                           <SelectContent>
@@ -486,10 +353,10 @@ export default function AdminCasinoGames() {
                         />
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={handleSaveEdit} className="mr-2">
+                        <Button variant="outline" size="sm" onClick={handleSaveEdit} className="mr-2 border-slate-700">
                           <Save className="h-4 w-4" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => setEditMode(null)}>
+                        <Button variant="outline" size="sm" onClick={() => setEditMode(null)} className="border-slate-700">
                           Cancel
                         </Button>
                       </TableCell>
@@ -498,7 +365,7 @@ export default function AdminCasinoGames() {
                     // View Mode
                     <>
                       <TableCell>
-                        <div className="w-10 h-10 rounded bg-background relative overflow-hidden">
+                        <div className="w-10 h-10 rounded bg-[#0a0e1b] relative overflow-hidden border border-slate-800">
                           <img 
                             src={game.imageSrc} 
                             alt={game.title}
@@ -506,17 +373,17 @@ export default function AdminCasinoGames() {
                           />
                         </div>
                       </TableCell>
-                      <TableCell>{game.title}</TableCell>
-                      <TableCell>{game.provider}</TableCell>
-                      <TableCell>{game.category}</TableCell>
-                      <TableCell>{game.isNew ? 'Yes' : 'No'}</TableCell>
-                      <TableCell>{game.isPopular ? 'Yes' : 'No'}</TableCell>
+                      <TableCell className="font-bold text-white text-xs">{game.title}</TableCell>
+                      <TableCell className="text-xs text-slate-300">{game.provider}</TableCell>
+                      <TableCell className="text-xs text-slate-400 capitalize">{game.category}</TableCell>
+                      <TableCell className="text-xs">{game.isNew ? <span className="text-bet-primary font-bold">Yes</span> : 'No'}</TableCell>
+                      <TableCell className="text-xs">{game.isPopular ? <span className="text-indigo-400 font-bold">Yes</span> : 'No'}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => handleEditGame(game)} className="mr-2">
-                          <Pencil className="h-4 w-4" />
+                        <Button variant="outline" size="sm" onClick={() => handleEditGame(game)} className="mr-2 border-slate-800 text-slate-400 hover:text-white">
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteGame(game.id)}>
-                          <Trash className="h-4 w-4" />
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteGame(game.id)} className="border-slate-800 text-slate-400 hover:text-red-400">
+                          <Trash className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
                     </>
@@ -524,8 +391,8 @@ export default function AdminCasinoGames() {
                 </TableRow>
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-6">No casino games found</TableCell>
+              <TableRow className="border-slate-800">
+                <TableCell colSpan={7} className="text-center py-6 text-slate-400 text-xs">No casino games found</TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -534,3 +401,4 @@ export default function AdminCasinoGames() {
     </div>
   );
 }
+

@@ -1,8 +1,8 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { saveUser, getUser } from '@/services/userService';
+import { getProfile, getStoredUser, storeAuthSession } from '@/services/authService';
+import { listenForAuthChanges } from '@/utils/authUtils';
 
 export interface User {
   token: string | null;
@@ -11,6 +11,7 @@ export interface User {
   provider: string | null;
   balance?: number;
   currency?: 'USD' | 'RWF';
+  role?: string;
 }
 
 export const useAuth = () => {
@@ -18,105 +19,90 @@ export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  
-  // Fetch user data from Supabase
-  const fetchUserData = async () => {
+
+  const buildUserObject = (profile: {
+    email: string;
+    name: string;
+    provider: string;
+    balance: string | number;
+    currency: 'USD' | 'RWF';
+    role: string;
+  }, token: string): User => ({
+    token,
+    name: profile.name || 'Urban Bet User',
+    email: profile.email,
+    provider: profile.provider || 'email',
+    balance: Number(profile.balance),
+    currency: profile.currency || 'RWF',
+    role: profile.role,
+  });
+
+  const clearUserState = useCallback(() => {
+    setIsLoggedIn(false);
+    setUser(null);
+  }, []);
+
+  const fetchUserData = useCallback(async () => {
     setIsLoading(true);
+
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      clearUserState();
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData.session;
-      
-      if (session) {
-        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
-        
-        if (supabaseUser) {
-          // Get additional user data from our service
-          const userData = await getUser(supabaseUser.id);
-          
-          // Save user in localStorage for compatibility with existing code
-          localStorage.setItem("userToken", supabaseUser.id);
-          localStorage.setItem("userName", supabaseUser.user_metadata?.name || userData?.name || 'Urban Bet User');
-          localStorage.setItem("userEmail", supabaseUser.email || '');
-          localStorage.setItem("userProvider", 'supabase');
-          
-          const userObject = {
-            token: supabaseUser.id,
-            name: supabaseUser.user_metadata?.name || userData?.name || 'Urban Bet User',
-            email: supabaseUser.email,
-            provider: 'supabase',
-            balance: userData?.balance || 50000,
-            currency: userData?.currency || 'RWF'
-          };
-          
-          setUser(userObject);
-          setIsLoggedIn(true);
-          console.log('User data fetched successfully:', userObject);
-          
-          // Ensure user is saved in our profiles table
-          await saveUser({
-            id: supabaseUser.id,
-            name: supabaseUser.user_metadata?.name || 'Urban Bet User',
-            email: supabaseUser.email || '',
-            balance: userData?.balance || 50000,
-            currency: userData?.currency || 'RWF'
-          });
-        } else {
-          console.log('No logged in user');
-          setIsLoggedIn(false);
-          setUser(null);
-          clearUserFromLocalStorage();
-        }
-      } else {
-        setIsLoggedIn(false);
-        setUser(null);
-        clearUserFromLocalStorage();
-      }
+      const profile = await getProfile();
+      storeAuthSession({
+        access: accessToken,
+        refresh: localStorage.getItem('refreshToken') || '',
+        user: profile,
+      });
+
+      const userObject = buildUserObject(profile, accessToken);
+      setUser(userObject);
+      setIsLoggedIn(true);
     } catch (error) {
       console.error('Error fetching user data:', error);
-      toast({
-        title: "Authentication Error",
-        description: "Could not fetch your account information. Using guest mode.",
-        variant: "destructive",
-      });
-      setIsLoggedIn(false);
-      setUser(null);
-      clearUserFromLocalStorage();
+
+      const storedUser = getStoredUser();
+      if (storedUser) {
+        const userObject = buildUserObject(storedUser, accessToken);
+        setUser(userObject);
+        setIsLoggedIn(true);
+      } else {
+        clearUserState();
+        toast({
+          title: "Authentication Error",
+          description: "Your session has expired. Please log in again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  const clearUserFromLocalStorage = () => {
-    localStorage.removeItem("userToken");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userProvider");
-  };
-  
+  }, [clearUserState, toast]);
+
   useEffect(() => {
     fetchUserData();
-    
-    // Set up listener for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event);
-      if (event === 'SIGNED_IN') {
+
+    const unsubscribe = listenForAuthChanges(() => {
+      const token = localStorage.getItem('accessToken');
+      if (token) {
         fetchUserData();
-      } else if (event === 'SIGNED_OUT') {
-        setIsLoggedIn(false);
-        setUser(null);
-        clearUserFromLocalStorage();
+      } else {
+        clearUserState();
       }
     });
-    
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
-  
+
+    return unsubscribe;
+  }, [fetchUserData, clearUserState]);
+
   return {
     isLoggedIn,
     user,
     isLoading,
-    refreshUserData: fetchUserData
+    refreshUserData: fetchUserData,
   };
 };

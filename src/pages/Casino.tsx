@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import Layout from "@/components/Layout";
 import CasinoGameCard from "@/components/CasinoGameCard";
+import { dbFallback } from "@/utils/dbFallback";
 
 // Mock data for casino games
 const casinoGames = [
@@ -97,33 +96,32 @@ const casinoGames = [
 export default function Casino() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
+  const [games, setGames] = useState<any[]>([]);
   const location = useLocation();
+
+  useEffect(() => {
+    setGames(dbFallback.getCasinoGames());
+  }, []);
   
-  // Map URL paths to tab values
   useEffect(() => {
     const path = location.pathname;
-    
-    // Set the appropriate tab based on the URL
     if (path === "/casino/slots") {
       setActiveTab("slots");
     } else if (path === "/casino/table-games") {
       setActiveTab("table");
     } else if (path === "/casino/live-casino") {
-      // Assuming we might add this category later
       setActiveTab("live");
     } else if (path === "/casino/jackpots") {
       setActiveTab("jackpot");
     } else if (path === "/casino/game-shows") {
-      setActiveTab("wheel"); // Using wheel for game shows
+      setActiveTab("wheel");
     }
   }, [location.pathname]);
   
-  // Filter games based on search query and active tab
-  const filteredGames = casinoGames.filter(game => {
+  const filteredGames = games.filter(game => {
     const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           game.provider.toLowerCase().includes(searchQuery.toLowerCase());
     
-    // Handle category filtering with special cases
     let matchesCategory = activeTab === "all";
     if (!matchesCategory) {
       if (activeTab === "table" && game.category === "table") {
@@ -143,77 +141,67 @@ export default function Casino() {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <main className="flex-grow">
-        {/* Hero Section */}
-        <div className="bg-bet-dark-accent py-12 px-4">
-          <div className="max-w-7xl mx-auto text-center">
-            <h1 className="text-4xl font-bold mb-4">Urban Casino</h1>
-            <p className="text-muted-foreground max-w-2xl mx-auto mb-8">
-              Experience the thrill of our premium casino games with realistic graphics and fair play algorithms powered by AI.
-            </p>
-            
-            {/* Search & Filter */}
-            <div className="max-w-md mx-auto">
-              <div className="relative mb-8">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-                <Input 
-                  type="text" 
-                  placeholder="Search for games..." 
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
-              <Tabs 
-                defaultValue="all" 
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="mb-8"
-              >
-                <TabsList className="grid grid-cols-6 w-full">
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="slots">Slots</TabsTrigger>
-                  <TabsTrigger value="table">Table Games</TabsTrigger>
-                  <TabsTrigger value="live">Live Casino</TabsTrigger>
-                  <TabsTrigger value="jackpot">Jackpots</TabsTrigger>
-                  <TabsTrigger value="wheel">Game Shows</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+    <Layout hideBettingSlip={true}>
+      <div className="flex flex-col gap-6">
+        {/* Header Title */}
+        <div>
+          <h1 className="text-2xl font-black uppercase text-white tracking-tight">Casino Games</h1>
+          <p className="text-muted-foreground text-xs mt-1">
+            Experience our premium slots, table games, and live dealers.
+          </p>
+        </div>
+        
+        {/* Search & Filter */}
+        <div className="bg-card/40 border border-border/60 rounded-xl p-4 flex flex-col md:flex-row justify-between gap-4 items-center">
+          <div className="relative w-full md:max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground/60 h-4 w-4" />
+            <Input 
+              type="text" 
+              placeholder="Search for games..." 
+              className="pl-9 h-9 bg-bet-dark/60 border-border/50 text-sm focus-visible:ring-bet-primary"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
+          
+          <Tabs 
+            defaultValue="all" 
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full md:w-auto"
+          >
+            <TabsList className="grid grid-cols-6 w-full md:w-auto bg-bet-dark/60 h-9 p-0.5 border border-border/50">
+              <TabsTrigger value="all" className="text-xs font-bold py-1.5 px-3">All</TabsTrigger>
+              <TabsTrigger value="slots" className="text-xs font-bold py-1.5 px-3">Slots</TabsTrigger>
+              <TabsTrigger value="table" className="text-xs font-bold py-1.5 px-3">Table</TabsTrigger>
+              <TabsTrigger value="live" className="text-xs font-bold py-1.5 px-3">Live</TabsTrigger>
+              <TabsTrigger value="jackpot" className="text-xs font-bold py-1.5 px-3">Jackpots</TabsTrigger>
+              <TabsTrigger value="wheel" className="text-xs font-bold py-1.5 px-3">Shows</TabsTrigger>
+            </TabsList>
+          </Tabs>
         </div>
         
         {/* Games Grid */}
-        <div className="py-12 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredGames.length > 0 ? (
-                filteredGames.map((game, index) => (
-                  <CasinoGameCard
-                    key={index}
-                    title={game.title}
-                    imageSrc={game.imageSrc}
-                    provider={game.provider}
-                    isNew={game.isNew}
-                    isPopular={game.isPopular}
-                    category={game.category}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-muted-foreground">No games found matching your search criteria</p>
-                </div>
-              )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredGames.length > 0 ? (
+            filteredGames.map((game, index) => (
+              <CasinoGameCard
+                key={index}
+                title={game.title}
+                imageSrc={game.imageSrc}
+                provider={game.provider}
+                isNew={game.isNew}
+                isPopular={game.isPopular}
+                category={game.category}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-16 border border-dashed border-border/60 rounded-xl bg-card/25">
+              <p className="text-muted-foreground">No games found matching your search criteria</p>
             </div>
-          </div>
+          )}
         </div>
-      </main>
-      
-      <Footer />
-    </div>
+      </div>
+    </Layout>
   );
 }

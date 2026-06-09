@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import Layout from "@/components/Layout";
 import Hero from "@/components/Hero";
-import FeaturesSection from "@/components/sections/FeaturesSection";
 import AIInsightsSection from "@/components/sections/AIInsightsSection";
 import SportsBettingSection from "@/components/sections/SportsBettingSection";
 import CasinoGamesSection from "@/components/sections/CasinoGamesSection";
@@ -81,7 +80,6 @@ const Index = () => {
   return (
     <Layout>
       <Hero />
-      <FeaturesSection />
       <AIInsightsSection aiInsights={aiInsights} />
       <SportsBettingSection upcomingMatches={upcomingMatches as Match[]} />
       <CasinoGamesSection casinoGames={casinoGames} />

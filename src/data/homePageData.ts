@@ -29,52 +29,52 @@ export const aiInsights: AIInsight[] = [
 export const upcomingMatches: Match[] = [
   {
     id: "match1",
-    homeTeam: "Chelsea",
-    awayTeam: "Arsenal",
+    homeTeam: "Man City",
+    awayTeam: "Liverpool",
     league: "Premier League",
     country: "England",
-    time: "15:00",
-    date: "Sat, 15 Oct",
-    homeOdds: 2.40,
-    drawOdds: 3.25,
-    awayOdds: 2.90
-  },
-  {
-    id: "match2",
-    homeTeam: "PSG",
-    awayTeam: "Bayern Munich",
-    league: "Champions League",
-    country: "Europe",
     time: "20:00",
-    date: "Wed, 19 Oct",
+    date: "Today",
     homeOdds: 2.10,
     drawOdds: 3.50,
     awayOdds: 3.20,
     isLive: true
   },
   {
+    id: "match2",
+    homeTeam: "Real Madrid",
+    awayTeam: "Barcelona",
+    league: "La Liga",
+    country: "Spain",
+    time: "22:00",
+    date: "Today",
+    homeOdds: 2.30,
+    drawOdds: 3.40,
+    awayOdds: 2.90
+  },
+  {
     id: "match3",
-    homeTeam: "Lakers",
-    awayTeam: "Celtics",
+    homeTeam: "LA Lakers",
+    awayTeam: "GS Warriors",
     league: "NBA",
     country: "USA",
-    time: "19:30",
-    date: "Thu, 20 Oct",
-    homeOdds: 1.85,
+    time: "03:00",
+    date: "Today",
+    homeOdds: 1.65,
     drawOdds: 0,
-    awayOdds: 1.95
+    awayOdds: 2.25
   },
   {
     id: "match4",
-    homeTeam: "Nadal",
-    awayTeam: "Federer",
-    league: "ATP Masters",
-    country: "International",
-    time: "14:00",
-    date: "Fri, 21 Oct",
-    homeOdds: 1.75,
-    drawOdds: 0,
-    awayOdds: 2.05
+    homeTeam: "Bayern Munich",
+    awayTeam: "Dortmund",
+    league: "Bundesliga",
+    country: "Germany",
+    time: "Tomorrow",
+    date: "Tomorrow",
+    homeOdds: 1.60,
+    drawOdds: 4.20,
+    awayOdds: 5.50
   }
 ];
 

@@ -14,7 +14,9 @@ import {
   Bell,
   LogOut,
   Wallet,
-  Settings
+  Settings,
+  Brain,
+  Club
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -49,6 +51,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { isAuthenticated, logout } from "@/utils/authUtils";
 import { useBetting } from "@/contexts/BettingContext";
+import { cn } from "@/lib/utils";
 
 export default function Navbar() {
   const { toast } = useToast();
@@ -111,53 +114,72 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border">
+    <header className="sticky top-0 z-50 w-full bg-bet-dark/95 border-b border-border select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <div className="w-8 h-8 rounded-md bg-gradient-to-br from-bet-primary to-bet-accent flex items-center justify-center mr-2">
-                <Zap size={18} className="text-white" />
-              </div>
-              <span className="text-2xl font-bold gradient-text">UrbanBet</span>
+            <Link to="/" className="flex items-center gap-2">
+              <span className="text-xl font-black tracking-tight text-white uppercase">
+                URBAN <span className="text-bet-primary">BET</span>
+              </span>
             </Link>
           </div>
 
-          {/* Desktop Navigation - Using NavigationMenu from shadcn */}
-          <NavigationMenu className="hidden md:flex">
-            <NavigationMenuList>
-              <NavigationMenuItem>
-                <Link to="/" className="text-foreground hover:text-bet-primary transition-colors font-medium px-3 py-2">
-                  Home
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/sports/football" className="text-foreground hover:text-bet-primary transition-colors font-medium px-3 py-2">
-                  Sports
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/casino" className="text-foreground hover:text-bet-primary transition-colors font-medium px-3 py-2">
-                  Casino
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/live" className="text-foreground hover:text-bet-primary transition-colors font-medium px-3 py-2">
-                  Live Betting
-                </Link>
-              </NavigationMenuItem>
-              
-              <NavigationMenuItem>
-                <Link to="/ai-predictions" className="text-foreground hover:text-bet-primary transition-colors font-medium px-3 py-2">
-                  AI Predictions
-                </Link>
-              </NavigationMenuItem>
-            </NavigationMenuList>
-          </NavigationMenu>
+          {/* Desktop Navigation - Middle Centered Links */}
+          <div className="hidden md:flex items-center gap-6">
+            <Link 
+              to="/sports" 
+              className={cn(
+                "flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all text-[10px] font-bold tracking-wider",
+                location.pathname.startsWith("/sports") 
+                  ? "text-bet-primary" 
+                  : "text-muted-foreground hover:text-white"
+              )}
+            >
+              <Trophy className="h-5 w-5" />
+              <span>SPORTS</span>
+            </Link>
+
+            <Link 
+              to="/casino" 
+              className={cn(
+                "flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all text-[10px] font-bold tracking-wider",
+                location.pathname.startsWith("/casino") 
+                  ? "text-bet-primary" 
+                  : "text-muted-foreground hover:text-white"
+              )}
+            >
+              <Club className="h-5 w-5" />
+              <span>CASINO</span>
+            </Link>
+
+            <Link 
+              to="/live" 
+              className={cn(
+                "flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all text-[10px] font-bold tracking-wider",
+                location.pathname === "/live" 
+                  ? "text-bet-primary" 
+                  : "text-muted-foreground hover:text-white"
+              )}
+            >
+              <Zap className="h-5 w-5" />
+              <span>LIVE BETTING</span>
+            </Link>
+
+            <Link 
+              to="/ai-predictions" 
+              className={cn(
+                "flex flex-col items-center gap-1 py-1 px-3 rounded-lg transition-all text-[10px] font-bold tracking-wider",
+                location.pathname === "/ai-predictions" 
+                  ? "text-bet-primary" 
+                  : "text-muted-foreground hover:text-white"
+              )}
+            >
+              <Brain className="h-5 w-5" />
+              <span>AI PREDICTIONS</span>
+            </Link>
+          </div>
 
           {/* Mobile Toggle */}
           <div className="md:hidden">
@@ -169,133 +191,81 @@ export default function Navbar() {
             </button>
           </div>
 
-          {/* Desktop Action Buttons */}
+          {/* Action Buttons / User Status */}
           <div className="hidden md:flex items-center space-x-4">
-            {/* Search Dialog */}
-            <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-              <DialogTrigger asChild>
-                <button className="text-foreground hover:text-bet-primary transition-colors">
-                  <Search size={20} />
-                </button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Search UrbanBet</DialogTitle>
-                  <DialogDescription>
-                    Search for events, teams, or games
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSearch} className="flex space-x-2">
-                  <Input
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search..."
-                    className="flex-1"
-                  />
-                  <Button type="submit">Search</Button>
-                </form>
-              </DialogContent>
-            </Dialog>
-            
             {isLoggedIn ? (
               <>
-                {/* Notifications Popover */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="relative text-foreground hover:text-bet-primary transition-colors">
-                      <Bell size={20} />
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-bet-primary rounded-full text-xs flex items-center justify-center">
-                        {notifications.filter(n => !n.isRead).length}
-                      </span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-0" align="end">
-                    <div className="p-4 border-b border-border">
-                      <h4 className="font-medium">Notifications</h4>
-                    </div>
-                    <div className="max-h-80 overflow-auto">
-                      {notifications.length > 0 ? (
-                        notifications.map(notification => (
-                          <div 
-                            key={notification.id} 
-                            className={`p-3 border-b border-border last:border-0 hover:bg-accent/5 ${notification.isRead ? 'opacity-70' : ''}`}
-                          >
-                            <div className="text-sm">{notification.message}</div>
-                            <div className="text-xs text-muted-foreground mt-1">{notification.time}</div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-4 text-center text-muted-foreground">
-                          No notifications
-                        </div>
-                      )}
-                    </div>
-                    <div className="p-2 border-t border-border">
-                      <Button variant="ghost" size="sm" className="w-full">
-                        View all notifications
-                      </Button>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                
-                <DropdownMenu>
-                  <DropdownMenuTrigger className="focus:outline-none">
-                    <div className="flex items-center space-x-2 cursor-pointer">
-                      <span className="text-sm font-medium">
-                        {currency === "RWF" ? "RWF " : "$"}{userBalance}
-                      </span>
-                      <Avatar className="h-8 w-8 hover:scale-105 transition-transform">
+                {/* Balance & Dropdown */}
+                <div className="flex items-center space-x-3 bg-bet-dark-accent/30 border border-border px-3 py-1.5 rounded-lg">
+                  <div className="flex flex-col items-end">
+                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Balance</span>
+                    <span className="text-xs font-bold text-white">
+                      {currency === "RWF" ? "RWF " : "$"}{parseFloat(userBalance.replace(/,/g, '')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger className="focus:outline-none">
+                      <Avatar className="h-7 w-7 hover:scale-105 transition-transform border border-border cursor-pointer">
                         {localStorage.getItem("userAvatar") ? (
                           <AvatarImage 
                             src={localStorage.getItem("userAvatar") || ""} 
                             className="object-cover" 
                           />
                         ) : null}
-                        <AvatarFallback className="bg-bet-accent">
+                        <AvatarFallback className="bg-bet-dark-accent text-[10px] text-white">
                           {userName.split(' ').map(name => name[0]).join('')}
                         </AvatarFallback>
                       </Avatar>
-                    </div>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard" className="cursor-pointer">
-                        <Trophy size={14} className="mr-2" /> Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/account" className="cursor-pointer">
-                        <Settings size={14} className="mr-2" /> Account Settings
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/wallet" className="cursor-pointer">
-                        <Wallet size={14} className="mr-2" /> Wallet
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/admin" className="cursor-pointer">
-                        <Settings size={14} className="mr-2" /> Admin Dashboard
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem 
-                      className="text-red-500 focus:text-red-500 cursor-pointer"
-                      onClick={handleLogout}
-                    >
-                      <LogOut size={14} className="mr-2" /> Sign Out
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard" className="cursor-pointer">
+                          <Trophy size={14} className="mr-2" /> Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/account" className="cursor-pointer">
+                          <Settings size={14} className="mr-2" /> Account Settings
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/wallet" className="cursor-pointer">
+                          <Wallet size={14} className="mr-2" /> Wallet
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin" className="cursor-pointer">
+                          <Settings size={14} className="mr-2" /> Admin Dashboard
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        className="text-red-500 focus:text-red-500 cursor-pointer"
+                        onClick={handleLogout}
+                      >
+                        <LogOut size={14} className="mr-2" /> Sign Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                {/* Deposit Button */}
+                <Button 
+                  onClick={() => navigate("/wallet")}
+                  className="bg-bet-primary text-bet-primary-foreground font-black tracking-wider hover:bg-bet-primary/90 transition-all rounded px-4 h-9 text-[11px]"
+                >
+                  DEPOSIT
+                </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" asChild>
+                <Button variant="outline" size="sm" asChild>
                   <Link to="/login">Log In</Link>
                 </Button>
-                <Button className="bg-bet-primary hover:bg-bet-primary/90" asChild>
+                <Button className="bg-bet-primary text-bet-primary-foreground font-black hover:bg-bet-primary/90" size="sm" asChild>
                   <Link to="/register">Sign Up</Link>
                 </Button>
               </>
@@ -308,14 +278,8 @@ export default function Navbar() {
       {isMenuOpen && (
         <div className="md:hidden glass py-4">
           <div className="px-4 space-y-3">
-            <Link to="/" className="block font-medium hover:text-bet-primary" onClick={toggleMenu}>
-              Home
-            </Link>
-            <Link to="/sports/football" className="block font-medium hover:text-bet-primary" onClick={toggleMenu}>
-              Football
-            </Link>
-            <Link to="/sports/basketball" className="block font-medium hover:text-bet-primary" onClick={toggleMenu}>
-              Basketball
+            <Link to="/sports" className="block font-medium hover:text-bet-primary" onClick={toggleMenu}>
+              Sports
             </Link>
             <Link to="/casino" className="block font-medium hover:text-bet-primary" onClick={toggleMenu}>
               Casino

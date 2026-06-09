@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { deleteAccount } from "@/lib/supabase";
+import { deleteAccount } from "@/services/authService";
 
 interface DeleteAccountDialogProps {
   open: boolean;
@@ -36,13 +36,6 @@ const DeleteAccountDialog = ({ open, onOpenChange }: DeleteAccountDialogProps) =
           title: "Account Deleted",
           description: "Your account has been successfully deleted.",
         });
-        
-        // Clear any local storage data
-        localStorage.removeItem("userToken");
-        localStorage.removeItem("userName");
-        localStorage.removeItem("userEmail");
-        localStorage.removeItem("userProvider");
-        localStorage.removeItem("userAvatar");
         
         // Redirect to home page
         navigate("/");

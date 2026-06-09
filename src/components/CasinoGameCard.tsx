@@ -46,7 +46,7 @@ export default function CasinoGameCard({
           />
           
           {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
+          <div className="absolute inset-0 bg-bet-primary opacity-80 transition-opacity group-hover:opacity-100" />
         </div>
         
         {/* Badges */}
