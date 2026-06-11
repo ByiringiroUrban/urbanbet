@@ -13,31 +13,35 @@ interface LayoutProps {
 const Layout = ({ children, hideBettingSlip = false }: LayoutProps) => {
   return (
     <BettingProvider>
-      <div className="min-h-screen flex flex-col bg-bet-dark text-foreground">
+      {/* Full viewport height, no page-level scroll */}
+      <div className="h-screen flex flex-col bg-background text-foreground overflow-hidden">
+        {/* Fixed top navbar */}
         <Navbar />
-        
-        {/* Main Dashboard Layout wrapper */}
-        <div className="flex-grow w-full max-w-7xl mx-auto flex flex-col lg:flex-row">
-          {/* Left Column Sidebar */}
-          <LeftSidebar />
 
-          {/* Middle Column Main Content */}
-          <main className="flex-1 p-4 md:p-6 lg:p-8 min-w-0">
+        {/* Remaining height row: left sidebar | scrollable content | right betslip */}
+        <div className="flex flex-1 overflow-hidden w-full max-w-[1600px] mx-auto">
+
+          {/* ───── LEFT SIDEBAR — always visible & sticky ───── */}
+          <aside className="hidden lg:flex lg:flex-col w-60 xl:w-64 shrink-0 overflow-y-auto no-scrollbar border-r border-border bg-sidebar">
+            <LeftSidebar embedded />
+          </aside>
+
+          {/* ───── MAIN CONTENT — only this column scrolls ───── */}
+          <main className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 lg:p-8">
             {children}
+            <Footer />
           </main>
 
-          {/* Right Column Betslip (Desktop Sidebar view) */}
+          {/* ───── RIGHT BETSLIP — always visible & sticky ───── */}
           {!hideBettingSlip && (
-            <div className="hidden xl:block w-80 shrink-0 sticky top-16 h-[calc(100vh-4rem)] bg-card/10 border-l border-border">
+            <div className="hidden xl:flex xl:flex-col w-72 2xl:w-80 shrink-0 overflow-y-auto no-scrollbar border-l border-border bg-card/10">
               <BettingSlip isSidebar={true} />
             </div>
           )}
         </div>
 
-        {/* Floating/Mobile Betting Slip Drawer */}
+        {/* Floating / Mobile Betting Slip Drawer */}
         {!hideBettingSlip && <BettingSlip />}
-        
-        <Footer />
       </div>
     </BettingProvider>
   );

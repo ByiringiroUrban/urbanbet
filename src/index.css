@@ -5,43 +5,44 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%;
+    /* betPawa-style dark charcoal background (#282a30 family) */
+    --background: 225 8% 17%;        /* ~#282a30 main page bg */
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 6%;
+    --card: 225 8% 21%;              /* ~#323540 panel/card bg */
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 4%;
+    --popover: 225 8% 15%;           /* ~#232529 dropdown bg */
     --popover-foreground: 210 40% 98%;
 
-    --primary: 84 89% 50%;
-    --primary-foreground: 222 47% 4%;
+    --primary: 84 89% 50%;           /* neon green accent */
+    --primary-foreground: 225 8% 10%;
 
     --secondary: 162 65% 41%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 222 20% 10%;
+    --muted: 225 8% 24%;             /* ~#383b44 muted surfaces */
     --muted-foreground: 215 16% 62%;
 
     --accent: 84 89% 50%;
-    --accent-foreground: 222 47% 4%;
+    --accent-foreground: 225 8% 10%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 222 20% 12%;
-    --input: 222 20% 12%;
+    --border: 225 8% 26%;            /* ~#3d4050 subtle borders */
+    --input: 225 8% 24%;
     --ring: 84 89% 50%;
 
-    --radius: 0.75rem;
+    --radius: 0.5rem;
 
-    --sidebar-background: 222 47% 4%;
+    --sidebar-background: 225 8% 14%;/* ~#20222a sidebar */
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 84 89% 50%;
-    --sidebar-primary-foreground: 222 47% 4%;
-    --sidebar-accent: 222 20% 10%;
+    --sidebar-primary-foreground: 225 8% 10%;
+    --sidebar-accent: 225 8% 20%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 222 20% 12%;
+    --sidebar-border: 225 8% 22%;
     --sidebar-ring: 84 89% 50%;
   }
 }
@@ -58,6 +59,12 @@
 
   html {
     @apply scroll-smooth;
+    height: 100%;
+  }
+
+  body {
+    height: 100%;
+    overflow: hidden; /* only .main content column scrolls */
   }
 }
 
@@ -86,11 +93,21 @@
   .bet-shadow {
     box-shadow: 0 10px 30px -5px rgba(79, 70, 229, 0.2);
   }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }
 
 #root {
   width: 100%;
+  height: 100vh;
   margin: 0 auto;
   padding: 0;
   text-align: center;
+  overflow: hidden;
 }

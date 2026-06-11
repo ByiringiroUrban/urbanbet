@@ -141,13 +141,15 @@ export const listenForAuthChanges = (callback: () => void) => {
   };
 };
 
-// Check if current user is an admin
-export const isAdmin = async (): Promise<boolean> => {
-  if (!isAuthenticated()) {
-    return false;
-  }
-
+// Check if current user is an admin (synchronous - reads localStorage directly)
+export const isAdminUser = (): boolean => {
+  if (!isAuthenticated()) return false;
   return localStorage.getItem('userRole') === 'admin';
+};
+
+// Check if current user is an admin (async version - kept for compatibility)
+export const isAdmin = async (): Promise<boolean> => {
+  return isAdminUser();
 };
 
 // Function to create the first admin in the system using the create_first_admin function

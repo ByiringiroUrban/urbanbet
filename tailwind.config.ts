@@ -69,8 +69,9 @@ export default {
 					accent: '#a3e635',
 					warning: '#F59E0B',
 					danger: '#EF4444',
-					dark: '#05070f',
-					'dark-accent': '#0a0e1b',
+					dark: '#282a30',        /* betPawa charcoal bg */
+					'dark-accent': '#323540', /* betPawa card/panel bg */
+					'dark-nav': '#20222a',    /* betPawa sidebar/nav bg */
 					light: '#F9FAFB',
 				},
 			},

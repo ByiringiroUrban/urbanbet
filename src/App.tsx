@@ -23,6 +23,7 @@ import FAQ from "./pages/FAQ";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Contact from "./pages/Contact";
+import { ProtectedAdminRoute, ProtectedUserRoute } from "./components/ProtectedRoutes";
 
 const queryClient = new QueryClient();
 
@@ -38,7 +39,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/dashboard" element={<ProtectedUserRoute><Dashboard /></ProtectedUserRoute>} />
             <Route path="/ai-predictions" element={<AIPredictions />} />
             <Route path="/casino" element={<Casino />} />
             <Route path="/casino/slots" element={<Casino />} />
@@ -51,9 +52,9 @@ const App = () => (
             <Route path="/sports/:sport/:country" element={<Sports />} />
             <Route path="/sports/:sport/:country/:league" element={<Sports />} />
             <Route path="/live" element={<LiveBetting />} />
-            <Route path="/account" element={<Account />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/admin" element={<Admin />} />
+            <Route path="/account" element={<ProtectedUserRoute><Account /></ProtectedUserRoute>} />
+            <Route path="/wallet" element={<ProtectedUserRoute><Wallet /></ProtectedUserRoute>} />
+            <Route path="/admin" element={<ProtectedAdminRoute><Admin /></ProtectedAdminRoute>} />
             <Route path="/responsible-gambling" element={<ResponsibleGambling />} />
             <Route path="/faq" element={<FAQ />} />
             <Route path="/terms" element={<Terms />} />

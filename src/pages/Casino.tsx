@@ -141,7 +141,7 @@ export default function Casino() {
   });
 
   return (
-    <Layout hideBettingSlip={true}>
+    <Layout>
       <div className="flex flex-col gap-6">
         {/* Header Title */}
         <div>

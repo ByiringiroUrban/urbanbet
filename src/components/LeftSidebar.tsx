@@ -4,7 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Search, Star, Trophy, Activity, Dribbble, Target, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export default function LeftSidebar() {
+interface LeftSidebarProps {
+  embedded?: boolean;
+}
+
+export default function LeftSidebar({ embedded = false }: LeftSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { sport, league } = useParams();
@@ -30,16 +34,16 @@ export default function LeftSidebar() {
     { name: "MMA / UFC", id: "mma-ufc", icon: Shield },
   ];
 
-  return (
-    <aside className="w-full lg:w-64 bg-card/25 border-b lg:border-b-0 lg:border-r border-border p-4 flex flex-col gap-6 select-none shrink-0">
+  const content = (
+    <>
       {/* Search Bar */}
       <form onSubmit={handleSearch} className="relative">
         <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-        <Input 
-          placeholder="Search..." 
+        <Input
+          placeholder="Search..."
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
-          className="pl-9 bg-bet-dark/60 border-border/50 text-sm focus-visible:ring-bet-primary focus-visible:border-bet-primary" 
+          className="pl-9 bg-bet-dark/60 border-border/50 text-sm focus-visible:ring-bet-primary focus-visible:border-bet-primary"
         />
       </form>
 
@@ -56,8 +60,8 @@ export default function LeftSidebar() {
               to={`/sports/${item.sport}/${item.country}/${item.id}`}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:bg-muted/50",
-                isActive 
-                  ? "bg-bet-primary/10 text-bet-primary font-semibold border-l-2 border-bet-primary pl-2 rounded-l-none" 
+                isActive
+                  ? "bg-bet-primary/10 text-bet-primary font-semibold border-l-2 border-bet-primary pl-2 rounded-l-none"
                   : "text-foreground"
               )}
             >
@@ -82,8 +86,8 @@ export default function LeftSidebar() {
               to={`/sports/${item.id}`}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 hover:bg-muted/50",
-                isActive 
-                  ? "bg-bet-primary/10 text-bet-primary font-semibold border-l-2 border-bet-primary pl-2 rounded-l-none" 
+                isActive
+                  ? "bg-bet-primary/10 text-bet-primary font-semibold border-l-2 border-bet-primary pl-2 rounded-l-none"
                   : "text-foreground"
               )}
             >
@@ -93,6 +97,18 @@ export default function LeftSidebar() {
           );
         })}
       </div>
+    </>
+  );
+
+  // When embedded=true, Layout provides the sticky aside wrapper — just return content
+  if (embedded) {
+    return <div className="flex flex-col gap-6 p-4 select-none">{content}</div>;
+  }
+
+  // Standalone usage (legacy / mobile): render with its own aside wrapper
+  return (
+    <aside className="w-full lg:w-64 bg-card/25 border-b lg:border-b-0 lg:border-r border-border p-4 flex flex-col gap-6 select-none shrink-0 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:overflow-y-auto no-scrollbar">
+      {content}
     </aside>
   );
 }

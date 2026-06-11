@@ -49,7 +49,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
-import { isAuthenticated, logout } from "@/utils/authUtils";
+import { isAuthenticated, logout, isAdminUser } from "@/utils/authUtils";
 import { useBetting } from "@/contexts/BettingContext";
 import { cn } from "@/lib/utils";
 
@@ -63,6 +63,7 @@ export default function Navbar() {
   const [userBalance, setUserBalance] = useState("0");
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
   const { currency } = useBetting();
 
   // Mock notifications data
@@ -79,8 +80,10 @@ export default function Navbar() {
     
     if (authenticated) {
       setUserName(localStorage.getItem("userName") || "User");
-      // In a real app, this would fetch the user's balance from an API
       setUserBalance(currency === "RWF" ? "1,500,000" : "1,250.00");
+      setUserIsAdmin(isAdminUser());
+    } else {
+      setUserIsAdmin(false);
     }
   }, [location.pathname, currency]);
 
@@ -195,70 +198,103 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {isLoggedIn ? (
               <>
-                {/* Balance & Dropdown */}
-                <div className="flex items-center space-x-3 bg-bet-dark-accent/30 border border-border px-3 py-1.5 rounded-lg">
-                  <div className="flex flex-col items-end">
-                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Balance</span>
-                    <span className="text-xs font-bold text-white">
-                      {currency === "RWF" ? "RWF " : "$"}{parseFloat(userBalance.replace(/,/g, '')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
+                {userIsAdmin ? (
+                  // ── ADMIN: no balance, no deposit — just avatar + dropdown ──
+                  <div className="flex items-center gap-2 bg-bet-dark-accent/30 border border-bet-primary/30 px-3 py-1.5 rounded-lg">
+                    <div className="flex flex-col items-end">
+                      <span className="text-[9px] font-bold text-bet-primary uppercase tracking-wider">Admin</span>
+                      <span className="text-[11px] font-bold text-white truncate max-w-[100px]">{userName}</span>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger className="focus:outline-none">
+                        <Avatar className="h-7 w-7 hover:scale-105 transition-transform border border-bet-primary/50 cursor-pointer">
+                          {localStorage.getItem("userAvatar") ? (
+                            <AvatarImage src={localStorage.getItem("userAvatar") || ""} className="object-cover" />
+                          ) : null}
+                          <AvatarFallback className="bg-bet-primary/20 text-[10px] text-bet-primary font-black">
+                            {userName.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuLabel className="flex items-center gap-2">
+                          <span className="text-bet-primary text-[10px] font-black uppercase tracking-wider bg-bet-primary/10 px-2 py-0.5 rounded">Admin</span>
+                          {userName}
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="cursor-pointer">
+                            <Settings size={14} className="mr-2 text-bet-primary" /> Admin Dashboard
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-red-500 focus:text-red-500 cursor-pointer"
+                          onClick={handleLogout}
+                        >
+                          <LogOut size={14} className="mr-2" /> Sign Out
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger className="focus:outline-none">
-                      <Avatar className="h-7 w-7 hover:scale-105 transition-transform border border-border cursor-pointer">
-                        {localStorage.getItem("userAvatar") ? (
-                          <AvatarImage 
-                            src={localStorage.getItem("userAvatar") || ""} 
-                            className="object-cover" 
-                          />
-                        ) : null}
-                        <AvatarFallback className="bg-bet-dark-accent text-[10px] text-white">
-                          {userName.split(' ').map(name => name[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link to="/dashboard" className="cursor-pointer">
-                          <Trophy size={14} className="mr-2" /> Dashboard
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/account" className="cursor-pointer">
-                          <Settings size={14} className="mr-2" /> Account Settings
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/wallet" className="cursor-pointer">
-                          <Wallet size={14} className="mr-2" /> Wallet
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem asChild>
-                        <Link to="/admin" className="cursor-pointer">
-                          <Settings size={14} className="mr-2" /> Admin Dashboard
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-red-500 focus:text-red-500 cursor-pointer"
-                        onClick={handleLogout}
-                      >
-                        <LogOut size={14} className="mr-2" /> Sign Out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {/* Deposit Button */}
-                <Button 
-                  onClick={() => navigate("/wallet")}
-                  className="bg-bet-primary text-bet-primary-foreground font-black tracking-wider hover:bg-bet-primary/90 transition-all rounded px-4 h-9 text-[11px]"
-                >
-                  DEPOSIT
-                </Button>
+                ) : (
+                  // ── REGULAR USER: balance + deposit ──
+                  <>
+                    <div className="flex items-center space-x-3 bg-bet-dark-accent/30 border border-border px-3 py-1.5 rounded-lg">
+                      <div className="flex flex-col items-end">
+                        <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider">Balance</span>
+                        <span className="text-xs font-bold text-white">
+                          {currency === "RWF" ? "RWF " : "$"}{parseFloat(userBalance.replace(/,/g, '')).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger className="focus:outline-none">
+                          <Avatar className="h-7 w-7 hover:scale-105 transition-transform border border-border cursor-pointer">
+                            {localStorage.getItem("userAvatar") ? (
+                              <AvatarImage src={localStorage.getItem("userAvatar") || ""} className="object-cover" />
+                            ) : null}
+                            <AvatarFallback className="bg-bet-dark-accent text-[10px] text-white">
+                              {userName.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem asChild>
+                            <Link to="/dashboard" className="cursor-pointer">
+                              <Trophy size={14} className="mr-2" /> Dashboard
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link to="/account" className="cursor-pointer">
+                              <Settings size={14} className="mr-2" /> Account Settings
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link to="/wallet" className="cursor-pointer">
+                              <Wallet size={14} className="mr-2" /> Wallet
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-red-500 focus:text-red-500 cursor-pointer"
+                            onClick={handleLogout}
+                          >
+                            <LogOut size={14} className="mr-2" /> Sign Out
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                    {/* Deposit Button — users only */}
+                    <Button
+                      onClick={() => navigate("/wallet")}
+                      className="bg-bet-primary text-bet-primary-foreground font-black tracking-wider hover:bg-bet-primary/90 transition-all rounded px-4 h-9 text-[11px]"
+                    >
+                      DEPOSIT
+                    </Button>
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -294,38 +330,58 @@ export default function Navbar() {
             <div className="pt-4 space-y-2">
               {isLoggedIn ? (
                 <>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="bg-bet-accent">
-                          {userName.split(' ').map(name => name[0]).join('')}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">
-                        {currency === "RWF" ? "RWF " : "$"}{userBalance}
-                      </span>
-                    </div>
-                  </div>
-                  <Link to="/dashboard" onClick={toggleMenu}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Trophy size={14} className="mr-2" /> Dashboard
-                    </Button>
-                  </Link>
-                  <Link to="/account" onClick={toggleMenu}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Settings size={14} className="mr-2" /> Account Settings
-                    </Button>
-                  </Link>
-                  <Link to="/wallet" onClick={toggleMenu}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Wallet size={14} className="mr-2" /> Wallet
-                    </Button>
-                  </Link>
-                  <Link to="/admin" onClick={toggleMenu}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      <Settings size={14} className="mr-2" /> Admin Dashboard
-                    </Button>
-                  </Link>
+                  {userIsAdmin ? (
+                    // ── ADMIN MOBILE MENU — no balance, no deposit ──
+                    <>
+                      <div className="flex items-center gap-3 px-1 py-2 bg-bet-primary/10 border border-bet-primary/20 rounded-lg">
+                        <Avatar className="h-8 w-8 border border-bet-primary/40">
+                          <AvatarFallback className="bg-bet-primary/20 text-bet-primary font-black text-[11px]">
+                            {userName.split(' ').map(n => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="text-[9px] font-black text-bet-primary uppercase tracking-wider">Administrator</p>
+                          <p className="text-sm font-bold text-white">{userName}</p>
+                        </div>
+                      </div>
+                      <Link to="/admin" onClick={toggleMenu}>
+                        <Button variant="outline" size="sm" className="w-full border-bet-primary/40 text-bet-primary hover:bg-bet-primary/10">
+                          <Settings size={14} className="mr-2" /> Admin Dashboard
+                        </Button>
+                      </Link>
+                    </>
+                  ) : (
+                    // ── USER MOBILE MENU — balance + all links ──
+                    <>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="bg-bet-accent">
+                              {userName.split(' ').map(name => name[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium">
+                            {currency === "RWF" ? "RWF " : "$"}{userBalance}
+                          </span>
+                        </div>
+                      </div>
+                      <Link to="/dashboard" onClick={toggleMenu}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Trophy size={14} className="mr-2" /> Dashboard
+                        </Button>
+                      </Link>
+                      <Link to="/account" onClick={toggleMenu}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Settings size={14} className="mr-2" /> Account Settings
+                        </Button>
+                      </Link>
+                      <Link to="/wallet" onClick={toggleMenu}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          <Wallet size={14} className="mr-2" /> Wallet
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                   <Button 
                     variant="outline" 
                     size="sm" 
