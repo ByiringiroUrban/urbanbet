@@ -1,11 +1,11 @@
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch, toArray } from '@/lib/api';
 import { AIprediction } from './database/types';
 
 export const getAIPredictions = async (userId: string): Promise<AIprediction[]> => {
   try {
     const data = await apiFetch('/predictions/');
-    return (data || []).map((pred: any) => ({
+    return toArray(data).map((pred: any) => ({
       id: String(pred.id),
       match: pred.match,
       prediction: pred.prediction,

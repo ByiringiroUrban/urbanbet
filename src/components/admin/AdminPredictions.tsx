@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 import { AIprediction } from "@/services/database/types";
 import { Pencil, Trash, Plus, Save, BrainCircuit } from "lucide-react";
 
@@ -35,7 +35,7 @@ export default function AdminPredictions() {
     setLoading(true);
     try {
       const data = await apiFetch('/predictions/');
-      const formatted = (data || []).map((pred: any) => ({
+      const formatted = toArray(data).map((pred: any) => ({
         id: String(pred.id),
         match: pred.match,
         prediction: pred.prediction,

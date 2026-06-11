@@ -1,12 +1,12 @@
 
-import { apiFetch } from '@/lib/api';
+import { apiFetch, toArray } from '@/lib/api';
 import { Market } from './database/types';
 
 // Get list of sports
 export const getSports = async (): Promise<{ id: string; name: string }[]> => {
   try {
     const data = await apiFetch('/sports/');
-    return (data || []).map((sport: any) => ({
+    return toArray(data).map((sport: any) => ({
       id: String(sport.id),
       name: sport.name
     }));
@@ -36,7 +36,7 @@ export const getMarkets = async (eventId?: string): Promise<Market[]> => {
   
   try {
     const data = await apiFetch(`/sports/events/${eventId}/markets/`);
-    return (data || []).map((market: any) => ({
+    return toArray(data).map((market: any) => ({
       id: String(market.id),
       name: market.name,
       options: market.options,

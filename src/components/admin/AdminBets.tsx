@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 import { Ticket, Search, ChevronDown, ChevronUp, Check, X, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -25,7 +25,7 @@ export default function AdminBets() {
     setLoading(true);
     try {
       const data = await apiFetch('/bets/admin/all/');
-      const formattedBets = (data || []).map((bet: any) => ({
+      const formattedBets = toArray(data).map((bet: any) => ({
         id: String(bet.id),
         userId: String(bet.user),
         userEmail: bet.user_email,

@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 import { Pencil, Trash, Plus, Save } from "lucide-react";
 
 const categories = [
@@ -52,7 +52,7 @@ export default function AdminCasinoGames() {
     setLoading(true);
     try {
       const data = await apiFetch('/casino/games/');
-      const formatted = (data || []).map((game: any) => ({
+      const formatted = toArray(data).map((game: any) => ({
         id: String(game.id),
         title: game.title,
         provider: game.provider,

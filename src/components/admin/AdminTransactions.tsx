@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 import { ArrowUpRight, ArrowDownRight, Search, CreditCard } from "lucide-react";
 
 export default function AdminTransactions() {
@@ -23,7 +23,7 @@ export default function AdminTransactions() {
     setLoading(true);
     try {
       const data = await apiFetch('/payments/admin/all/');
-      const formatted = (data || []).map((txn: any) => ({
+      const formatted = toArray(data).map((txn: any) => ({
         id: String(txn.id),
         userId: String(txn.user),
         userEmail: txn.user_email,

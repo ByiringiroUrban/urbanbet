@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated } from "@/utils/authUtils";
 import Layout from "@/components/Layout";
 import AIInsightCard from "@/components/AIInsightCard";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 
 const AIPredictions = () => {
   const { toast } = useToast();
@@ -28,7 +28,7 @@ const AIPredictions = () => {
       setIsLoading(true);
       try {
         const data = await apiFetch('/predictions/');
-        setPredictions(data || []);
+        setPredictions(toArray(data));
       } catch (error) {
         console.error('Error fetching AI predictions:', error);
       } finally {

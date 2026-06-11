@@ -175,3 +175,14 @@ function getErrorMessage(errorData: any): string | null {
   }
   return null;
 }
+
+/**
+ * Django REST Framework can return either a plain array OR a paginated
+ * { count, next, previous, results: [...] } object.
+ * This helper normalises both shapes into a plain array safely.
+ */
+export const toArray = (value: any): any[] => {
+  if (Array.isArray(value)) return value;
+  if (value && Array.isArray(value.results)) return value.results;
+  return [];
+};

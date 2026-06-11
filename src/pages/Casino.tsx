@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import Layout from "@/components/Layout";
 import CasinoGameCard from "@/components/CasinoGameCard";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 
 export default function Casino() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,7 +19,7 @@ export default function Casino() {
       setLoading(true);
       try {
         const data = await apiFetch('/casino/games/');
-        const mapped = (data || []).map((game: any) => ({
+        const mapped = toArray(data).map((game: any) => ({
           id: String(game.id),
           title: game.title,
           provider: game.provider,

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 import { UserPlus, Shield, Search, ArrowUp, ArrowDown } from "lucide-react";
 
 export default function AdminUsers() {
@@ -22,7 +22,7 @@ export default function AdminUsers() {
     setLoading(true);
     try {
       const data = await apiFetch('/auth/admin/users/');
-      setUsers(data || []);
+      setUsers(toArray(data));
     } catch (error) {
       console.error('Error loading users:', error);
       toast({

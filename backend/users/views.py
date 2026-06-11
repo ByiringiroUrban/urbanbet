@@ -62,7 +62,7 @@ class SocialLoginView(APIView):
                 'name': data.get('name', ''),
                 'provider': data['provider'],
                 'provider_user_id': data['provider_user_id'],
-                'balance': 50000,
+                'balance': 0,
                 'currency': User.CURRENCY_RWF,
                 'is_verified': True,
             }

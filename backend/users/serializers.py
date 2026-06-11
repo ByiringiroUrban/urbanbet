@@ -24,7 +24,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             phone=validated_data.get('phone', ''),
             password=validated_data['password'],
             currency=validated_data.get('currency', User.CURRENCY_RWF),
-            balance=50000,
+            balance=0,
         )
         return user
 

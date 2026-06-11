@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 import { Pencil, Trash, Plus, Save } from "lucide-react";
 
 export default function AdminEvents() {
@@ -43,13 +43,13 @@ export default function AdminEvents() {
   const loadDropdowns = async () => {
     try {
       const sportsList = await apiFetch('/sports/');
-      setSports(sportsList || []);
+      setSports(toArray(sportsList));
       
       const countriesList = await apiFetch('/sports/countries/');
-      setCountries(countriesList || []);
+      setCountries(toArray(countriesList));
       
       const leaguesList = await apiFetch('/sports/leagues/');
-      setLeagues(leaguesList || []);
+      setLeagues(toArray(leaguesList));
     } catch (error) {
       console.error('Error loading form options:', error);
     }
@@ -59,7 +59,7 @@ export default function AdminEvents() {
     setLoading(true);
     try {
       const data = await apiFetch('/sports/events/');
-      setEvents(data || []);
+      setEvents(toArray(data));
     } catch (error) {
       console.error('Error loading events:', error);
       toast({

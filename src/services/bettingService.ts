@@ -1,4 +1,4 @@
-import { apiFetch } from '@/lib/api';
+import { apiFetch, toArray } from '@/lib/api';
 import { BetRecord } from './database/types';
 
 // Betting related functions
@@ -30,7 +30,7 @@ export const saveBet = async (betData: Omit<BetRecord, 'id'>): Promise<{ success
 export const getBetHistory = async (userId: string): Promise<BetRecord[]> => {
   try {
     const data = await apiFetch('/bets/history/');
-    return (data || []).map((bet: any) => ({
+    return toArray(data).map((bet: any) => ({
       id: String(bet.id),
       userId: String(bet.user),
       items: bet.items,

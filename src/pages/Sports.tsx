@@ -7,7 +7,7 @@ import Layout from "@/components/Layout";
 import UpcomingMatchCard from "@/components/UpcomingMatchCard";
 import { sportsCategories } from "@/data/sportsData";
 import { isAuthenticated } from "@/utils/authUtils";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 
 // Define TypeScript interfaces for our data structure
 interface BaseMatch {
@@ -45,7 +45,7 @@ export default function Sports() {
       setLoading(true);
       try {
         const data = await apiFetch('/sports/events/');
-        const mapped = (data || []).map((evt: any) => ({
+        const mapped = toArray(data).map((evt: any) => ({
           id: String(evt.id),
           homeTeam: evt.home_team,
           awayTeam: evt.away_team,

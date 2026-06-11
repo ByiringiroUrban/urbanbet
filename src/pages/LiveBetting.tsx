@@ -5,7 +5,7 @@ import { Search, Clock, BarChart2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Layout from "@/components/Layout";
 import UpcomingMatchCard from "@/components/UpcomingMatchCard";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 
 export default function LiveBetting() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -24,7 +24,7 @@ export default function LiveBetting() {
       setLoading(true);
       try {
         const data = await apiFetch('/sports/events/live/');
-        const mapped = (data || []).map((evt: any) => ({
+        const mapped = toArray(data).map((evt: any) => ({
           id: String(evt.id),
           homeTeam: evt.home_team,
           awayTeam: evt.away_team,

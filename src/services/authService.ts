@@ -8,7 +8,7 @@ export const getStoredUser = () => {
     email,
     name: localStorage.getItem('userName') || 'Urban Bet User',
     provider: localStorage.getItem('userProvider') || 'email',
-    balance: localStorage.getItem('userBalance') || '50000',
+    balance: localStorage.getItem('userBalance') || '0',
     currency: (localStorage.getItem('userCurrency') || 'RWF') as 'USD' | 'RWF',
     role: localStorage.getItem('userRole') || 'user',
   };

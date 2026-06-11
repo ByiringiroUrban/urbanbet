@@ -7,7 +7,7 @@ import CasinoGamesSection from "@/components/sections/CasinoGamesSection";
 import CallToActionSection from "@/components/sections/CallToActionSection";
 import { useAuth } from "@/hooks/useAuth";
 import { Match, CasinoGame, AIInsight } from "@/types";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, toArray } from "@/lib/api";
 
 const Index = () => {
   const { isLoggedIn } = useAuth();
@@ -20,70 +20,78 @@ const Index = () => {
     const fetchHomepageData = async () => {
       setIsLoading(true);
 
-      // Fetch all three data sources in parallel
-      const [predictionsRes, eventsRes, gamesRes] = await Promise.allSettled([
-        apiFetch('/predictions/'),
-        apiFetch('/sports/events/'),
-        apiFetch('/casino/games/'),
-      ]);
+      try {
+        // Fetch all three data sources in parallel — allSettled so one failure doesn't block the rest
+        const [predictionsRes, eventsRes, gamesRes] = await Promise.allSettled([
+          apiFetch('/predictions/'),
+          apiFetch('/sports/events/'),
+          apiFetch('/casino/games/'),
+        ]);
 
-      // Map AI Predictions
-      if (predictionsRes.status === 'fulfilled') {
-        const mapped: AIInsight[] = (predictionsRes.value || [])
-          .filter((p: any) => p.is_featured)
-          .slice(0, 3)
-          .map((p: any) => ({
-            match: p.match,
-            prediction: p.prediction,
-            confidence: p.confidence,
-            analysis: p.analysis,
-            trend: p.trend || undefined,
-            odds: String(p.odds),
-          }));
-        setAiInsights(mapped);
+        // Map AI Predictions
+        if (predictionsRes.status === 'fulfilled') {
+          const list = toArray(predictionsRes.value);
+          const mapped: AIInsight[] = list
+            .filter((p: any) => p.is_featured)
+            .slice(0, 3)
+            .map((p: any) => ({
+              match: p.match,
+              prediction: p.prediction,
+              confidence: p.confidence,
+              analysis: p.analysis,
+              trend: p.trend || undefined,
+              odds: String(p.odds),
+            }));
+          setAiInsights(mapped);
+        }
+
+        // Map Sports Events
+        if (eventsRes.status === 'fulfilled') {
+          const list = toArray(eventsRes.value);
+          const mapped: Match[] = list
+            .slice(0, 4)
+            .map((e: any) => ({
+              id: String(e.id),
+              homeTeam: e.home_team,
+              awayTeam: e.away_team,
+              league: e.league_name || '',
+              country: e.country_name || '',
+              time: e.start_time
+                ? new Date(e.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : '--:--',
+              date: e.start_time
+                ? new Date(e.start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })
+                : '',
+              homeOdds: parseFloat(e.home_odds) || 0,
+              drawOdds: e.draw_odds ? parseFloat(e.draw_odds) : undefined,
+              awayOdds: parseFloat(e.away_odds) || 0,
+              isLive: e.status === 'live' || e.is_live === true,
+            }));
+          setUpcomingMatches(mapped);
+        }
+
+        // Map Casino Games
+        if (gamesRes.status === 'fulfilled') {
+          const list = toArray(gamesRes.value);
+          const mapped: CasinoGame[] = list
+            .filter((g: any) => g.is_popular)
+            .slice(0, 4)
+            .map((g: any) => ({
+              title: g.title,
+              imageSrc: g.image_url || `https://picsum.photos/seed/${encodeURIComponent(g.title)}/400/300`,
+              provider: g.provider,
+              isNew: g.is_new || false,
+              isPopular: g.is_popular || false,
+              category: g.category || 'other',
+            }));
+          setCasinoGames(mapped);
+        }
+      } catch (err) {
+        console.error('Error loading homepage data:', err);
+      } finally {
+        // ALWAYS stop the loading spinner, even if something threw
+        setIsLoading(false);
       }
-
-      // Map Sports Events
-      if (eventsRes.status === 'fulfilled') {
-        const mapped: Match[] = (eventsRes.value || [])
-          .slice(0, 4)
-          .map((e: any) => ({
-            id: String(e.id),
-            homeTeam: e.home_team,
-            awayTeam: e.away_team,
-            league: e.league_name || e.league || '',
-            country: e.country_name || e.country || '',
-            time: e.start_time
-              ? new Date(e.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-              : '--:--',
-            date: e.start_time
-              ? new Date(e.start_time).toLocaleDateString([], { month: 'short', day: 'numeric' })
-              : '',
-            homeOdds: parseFloat(e.home_odds) || 0,
-            drawOdds: e.draw_odds ? parseFloat(e.draw_odds) : undefined,
-            awayOdds: parseFloat(e.away_odds) || 0,
-            isLive: e.status === 'live' || e.is_live === true,
-          }));
-        setUpcomingMatches(mapped);
-      }
-
-      // Map Casino Games
-      if (gamesRes.status === 'fulfilled') {
-        const mapped: CasinoGame[] = (gamesRes.value || [])
-          .filter((g: any) => g.is_popular)
-          .slice(0, 4)
-          .map((g: any) => ({
-            title: g.title,
-            imageSrc: g.image_url || `https://picsum.photos/seed/${encodeURIComponent(g.title)}/400/300`,
-            provider: g.provider,
-            isNew: g.is_new || false,
-            isPopular: g.is_popular || false,
-            category: g.category || 'other',
-          }));
-        setCasinoGames(mapped);
-      }
-
-      setIsLoading(false);
     };
 
     fetchHomepageData();
