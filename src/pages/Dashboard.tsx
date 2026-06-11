@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { isLoggedIn as checkLoggedIn } from "@/utils/authUtils";
 import UserProfile from "@/components/dashboard/UserProfile";
 import DashboardTabs from "@/components/dashboard/DashboardTabs";
 import { getBetHistory } from "@/services/bettingService";
@@ -43,7 +42,7 @@ const Dashboard = () => {
       description: "You've successfully logged into your dashboard.",
     });
     
-    // Fetch bet history from Supabase
+    // Fetch bet history from backend API
     const fetchBetHistory = async () => {
       if (user?.token) {
         setLoadingBets(true);
@@ -58,7 +57,7 @@ const Dashboard = () => {
       }
     };
     
-    // Fetch AI predictions from Supabase
+    // Fetch AI predictions from backend API
     const fetchAIPredictions = async () => {
       setLoadingPredictions(true);
       try {

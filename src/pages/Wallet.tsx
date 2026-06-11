@@ -10,12 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated } from "@/utils/authUtils";
-import { processPayment, PaymentMethod } from "@/services/paymentService";
+import { processPayment, PaymentMethod, withdrawFunds, getTransactionHistory } from "@/services/paymentService";
 import { ArrowUpRight, ArrowDownLeft, Clock, CreditCard, Wallet as WalletIcon, Smartphone, Check, AlertCircle, Globe } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'bet' | 'win';
+  type: 'deposit' | 'withdrawal' | 'bet_win' | 'bet_loss' | 'bet' | 'win';
   amount: number;
   status: 'completed' | 'pending' | 'failed';
   date: string;
@@ -35,14 +36,39 @@ const Wallet = () => {
   const [cvv, setCvv] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   
-  // Get user data from localStorage
-  const userName = localStorage.getItem("userName") || "User";
-  const userEmail = localStorage.getItem("userEmail") || "";
+  const { isLoggedIn, user, refreshUserData } = useAuth();
   
-  // Convert balance to RWF (1 USD = ~1,200 RWF as an example)
-  const balanceUSD = 1250;
-  const balanceRWF = balanceUSD * 1200;
+  // Get user data from useAuth
+  const userName = user?.name || "User";
+  const userEmail = user?.email || "";
   
+  // Convert balance to RWF dynamically
+  const userBalance = user?.balance || 0;
+  const userCurrency = user?.currency || 'RWF';
+  const balanceRWF = userCurrency === 'USD' ? userBalance * 1200 : userBalance;
+  const balanceUSD = userCurrency === 'USD' ? userBalance : userBalance / 1200;
+  
+  const loadTransactions = async () => {
+    const data = await getTransactionHistory();
+    const formatted = data.map((txn: any) => ({
+      id: txn.id,
+      type: txn.type,
+      amount: txn.amount,
+      status: txn.status,
+      date: new Date(txn.timestamp).toISOString().split('T')[0],
+      method: txn.method === 'momo' 
+        ? "MTN Mobile Money" 
+        : txn.method === 'airtel'
+          ? "Airtel Money"
+          : txn.method === 'irembo'
+            ? "Irembo Pay"
+            : txn.method === 'card'
+              ? "Card Payment"
+              : txn.method
+    }));
+    setTransactions(formatted);
+  };
+
   useEffect(() => {
     // Check if user is authenticated
     if (!isAuthenticated()) {
@@ -55,39 +81,7 @@ const Wallet = () => {
       return;
     }
 
-    // Load transactions (in a real app, this would be fetched from an API)
-    setTransactions([
-      {
-        id: "tx-001",
-        type: "deposit",
-        amount: 50000,
-        status: "completed",
-        date: "2025-03-15",
-        method: "MTN Mobile Money"
-      },
-      {
-        id: "tx-002",
-        type: "bet",
-        amount: -10000,
-        status: "completed",
-        date: "2025-03-16"
-      },
-      {
-        id: "tx-003",
-        type: "win",
-        amount: 25000,
-        status: "completed",
-        date: "2025-03-16"
-      },
-      {
-        id: "tx-004",
-        type: "withdrawal",
-        amount: -20000,
-        status: "pending",
-        date: "2025-03-17",
-        method: "Airtel Money"
-      }
-    ]);
+    loadTransactions();
   }, [toast, navigate]);
 
   const handleTransaction = async () => {
@@ -166,34 +160,13 @@ const Wallet = () => {
       });
       
       if (paymentResult.success) {
-        // Create a new transaction record
-        const newTransaction: Transaction = {
-          id: paymentResult.transactionId || `tx-${Date.now()}`,
-          type: "deposit",
-          amount: Number(amount),
-          status: "pending",
-          date: new Date().toISOString().split('T')[0],
-          method: paymentMethod === "momo" 
-            ? "MTN Mobile Money" 
-            : paymentMethod === "airtel"
-              ? "Airtel Money"
-              : paymentMethod === "irembo"
-                ? "Irembo Pay"
-                : "Card Payment"
-        };
-        
-        // Update transactions list
-        setTransactions([newTransaction, ...transactions]);
-        
         toast({
-          title: "Deposit initiated",
-          description: paymentResult.message || `RWF ${Number(amount).toLocaleString()} deposit is being processed.`,
+          title: "Deposit successful",
+          description: paymentResult.message,
         });
         
-        // If there's a redirect URL (e.g., for Irembo Pay), redirect
-        if (paymentResult.redirectUrl) {
-          window.open(paymentResult.redirectUrl, '_blank');
-        }
+        await refreshUserData();
+        await loadTransactions();
       } else {
         // Payment failed
         toast({
@@ -203,25 +176,29 @@ const Wallet = () => {
         });
       }
     } else {
-      // Handle withdrawal - simpler since it's usually an internal process
-      const newTransaction: Transaction = {
-        id: `tx-${Date.now()}`,
-        type: "withdrawal",
-        amount: -Number(amount),
-        status: "pending",
-        date: new Date().toISOString().split('T')[0],
-        method: paymentMethod === "momo" 
-          ? "MTN Mobile Money" 
-          : "Airtel Money"
-      };
-      
-      // Update transactions list
-      setTransactions([newTransaction, ...transactions]);
-      
-      toast({
-        title: "Withdrawal request submitted",
-        description: `Your withdrawal request for RWF ${Number(amount).toLocaleString()} is being processed.`,
+      // Process withdrawal using payment service
+      const paymentResult = await withdrawFunds({
+        amount: Number(amount),
+        method: paymentMethod === "momo" ? "momo" : "airtel",
+        phone_number: phoneNumber,
+        currency: "RWF"
       });
+      
+      if (paymentResult.success) {
+        toast({
+          title: "Withdrawal successful",
+          description: paymentResult.message,
+        });
+        
+        await refreshUserData();
+        await loadTransactions();
+      } else {
+        toast({
+          title: "Withdrawal failed",
+          description: paymentResult.message,
+          variant: "destructive",
+        });
+      }
     }
     
     setIsLoading(false);

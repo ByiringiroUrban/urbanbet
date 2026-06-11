@@ -1,24 +1,22 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/lib/api';
 import { AIprediction } from './database/types';
 
 export const getAIPredictions = async (userId: string): Promise<AIprediction[]> => {
   try {
-    const { data, error } = await supabase
-      .from('ai_predictions')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-      
-    if (error) {
-      console.error('Error fetching AI predictions:', error);
-      throw error;
-    }
-
-    return data || [];
+    const data = await apiFetch('/predictions/');
+    return (data || []).map((pred: any) => ({
+      id: String(pred.id),
+      match: pred.match,
+      prediction: pred.prediction,
+      confidence: pred.confidence,
+      analysis: pred.analysis,
+      trend: pred.trend,
+      odds: pred.odds
+    }));
   } catch (error) {
-    console.error('Error in getAIPredictions:', error);
-    return []; // Return empty array instead of throwing
+    console.error('Error fetching AI predictions:', error);
+    return [];
   }
 };
 
@@ -28,19 +26,10 @@ export const generatePrediction = async (matchData: {
   history?: string;
   currentForm?: string;
 }) => {
-  try {
-    const { data, error } = await supabase.functions.invoke('generate-match-prediction', {
-      body: matchData
-    });
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    console.error('Error generating prediction:', error);
-    // Return a fallback response instead of throwing
-    return {
-      success: false,
-      error: 'Failed to generate prediction. Please try again later.'
-    };
-  }
+  // Return a friendly offline warning as prediction generation is handled via seeded DB records
+  return {
+    success: false,
+    error: 'AI Prediction service is running on pre-calculated models in the database.'
+  };
 };
+

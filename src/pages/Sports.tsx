@@ -7,7 +7,7 @@ import Layout from "@/components/Layout";
 import UpcomingMatchCard from "@/components/UpcomingMatchCard";
 import { sportsCategories } from "@/data/sportsData";
 import { isAuthenticated } from "@/utils/authUtils";
-import { dbFallback } from "@/utils/dbFallback";
+import { apiFetch } from "@/lib/api";
 
 // Define TypeScript interfaces for our data structure
 interface BaseMatch {
@@ -31,189 +31,46 @@ function hasDrawOdds(match: BaseMatch): match is MatchWithDraw {
   return 'drawOdds' in match;
 }
 
-// Mock data for sports matches
-const sportsData: Record<string, (BaseMatch | MatchWithDraw)[]> = {
-  football: [
-    {
-      id: "match1",
-      homeTeam: "Arsenal",
-      awayTeam: "Chelsea",
-      league: "Premier League",
-      leagueId: "premier-league",
-      time: "20:00",
-      date: "Today",
-      homeOdds: 2.10,
-      drawOdds: 3.40,
-      awayOdds: 3.75,
-      isLive: true
-    },
-    {
-      id: "match2",
-      homeTeam: "Barcelona",
-      awayTeam: "Real Madrid",
-      league: "La Liga",
-      leagueId: "la-liga",
-      time: "21:00",
-      date: "Tomorrow",
-      homeOdds: 1.90,
-      drawOdds: 3.50,
-      awayOdds: 4.10
-    },
-    {
-      id: "match3",
-      homeTeam: "Bayern Munich",
-      awayTeam: "Borussia Dortmund",
-      league: "Bundesliga",
-      time: "19:30",
-      date: "Sat, 25 Jun",
-      homeOdds: 1.75,
-      drawOdds: 3.80,
-      awayOdds: 4.50
-    },
-    {
-      id: "match4",
-      homeTeam: "PSG",
-      awayTeam: "Marseille",
-      league: "Ligue 1",
-      leagueId: "ligue-1",
-      time: "20:45",
-      date: "Sun, 26 Jun",
-      homeOdds: 1.65,
-      drawOdds: 3.90,
-      awayOdds: 5.20
-    },
-    {
-      id: "match5",
-      homeTeam: "APR FC",
-      awayTeam: "Rayon Sports",
-      league: "Rwanda Premier League",
-      leagueId: "rwanda-premier",
-      time: "15:00",
-      date: "Tomorrow",
-      homeOdds: 2.20,
-      drawOdds: 3.10,
-      awayOdds: 3.50
-    },
-    {
-      id: "match6",
-      homeTeam: "Manchester United",
-      awayTeam: "Liverpool",
-      league: "Premier League",
-      leagueId: "premier-league",
-      time: "16:30",
-      date: "Sun, 26 Jun",
-      homeOdds: 2.80,
-      drawOdds: 3.40,
-      awayOdds: 2.50
-    },
-    {
-      id: "match7",
-      homeTeam: "Real Madrid",
-      awayTeam: "Bayern Munich",
-      league: "UEFA Champions League",
-      leagueId: "champions-league",
-      time: "20:00",
-      date: "Tue, 28 Jun",
-      homeOdds: 2.10,
-      drawOdds: 3.50,
-      awayOdds: 3.30
-    }
-  ],
-  basketball: [
-    {
-      id: "bball1",
-      homeTeam: "Lakers",
-      awayTeam: "Celtics",
-      league: "NBA",
-      leagueId: "nba",
-      time: "22:00",
-      date: "Today",
-      homeOdds: 1.85,
-      awayOdds: 2.05,
-      isLive: true
-    },
-    {
-      id: "bball2",
-      homeTeam: "Warriors",
-      awayTeam: "Nets",
-      league: "NBA",
-      leagueId: "nba",
-      time: "23:30",
-      date: "Tomorrow",
-      homeOdds: 1.75,
-      awayOdds: 2.15
-    },
-    {
-      id: "bball3",
-      homeTeam: "Bulls",
-      awayTeam: "Heat",
-      league: "NBA",
-      leagueId: "nba",
-      time: "21:00",
-      date: "Sat, 25 Jun",
-      homeOdds: 2.25,
-      awayOdds: 1.70
-    },
-    {
-      id: "bball4",
-      homeTeam: "Patriots BBC",
-      awayTeam: "REG",
-      league: "Rwanda Basketball League",
-      leagueId: "rwanda-basketball",
-      time: "18:00",
-      date: "Tomorrow",
-      homeOdds: 2.40,
-      awayOdds: 1.60
-    }
-  ],
-  tennis: [
-    {
-      id: "tennis1",
-      homeTeam: "Djokovic",
-      awayTeam: "Nadal",
-      league: "Grand Slams",
-      leagueId: "grand-slams",
-      time: "15:00",
-      date: "Tomorrow",
-      homeOdds: 1.90,
-      awayOdds: 2.00
-    },
-    {
-      id: "tennis2",
-      homeTeam: "Alcaraz",
-      awayTeam: "Medvedev",
-      league: "US Open",
-      leagueId: "grand-slams",
-      time: "18:30",
-      date: "Sat, 25 Jun",
-      homeOdds: 1.85,
-      awayOdds: 2.05
-    },
-    {
-      id: "tennis3",
-      homeTeam: "Mugisha",
-      awayTeam: "Hakizimana",
-      league: "Rwandan Open",
-      leagueId: "rwandan-open",
-      time: "14:00",
-      date: "Today",
-      homeOdds: 2.10,
-      awayOdds: 1.80
-    }
-  ]
-};
-
 export default function Sports() {
   const { sport = "football", country, league } = useParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [matchesView, setMatchesView] = useState("all");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const [allEvents, setAllEvents] = useState<any[]>([]);
 
   useEffect(() => {
-    setAllEvents(dbFallback.getEvents());
+    const fetchEvents = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch('/sports/events/');
+        const mapped = (data || []).map((evt: any) => ({
+          id: String(evt.id),
+          homeTeam: evt.home_team,
+          awayTeam: evt.away_team,
+          league: evt.league_name,
+          time: new Date(evt.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(evt.start_time).toLocaleDateString([], { day: '2-digit', month: 'short' }),
+          homeOdds: Number(evt.home_odds),
+          drawOdds: evt.draw_odds ? Number(evt.draw_odds) : undefined,
+          awayOdds: Number(evt.away_odds),
+          isLive: evt.is_live,
+          sportId: evt.sport_name?.toLowerCase(),
+          country: evt.country_name?.toLowerCase(),
+          startTime: evt.start_time,
+          leagueId: evt.league_name?.toLowerCase().replace(/\s+/g, '-')
+        }));
+        setAllEvents(mapped);
+      } catch (err) {
+        console.error("Failed to fetch events:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
   }, []);
+
 
   const validSport = ["football", "basketball", "tennis"].includes(sport) ? sport : "football";
   let matches = allEvents.filter(match => match.sportId === validSport);
@@ -324,7 +181,11 @@ export default function Sports() {
         
         {/* Matches Stack */}
         <div className="flex flex-col gap-4">
-          {filteredMatches.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="w-8 h-8 border-4 border-bet-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : filteredMatches.length > 0 ? (
             filteredMatches.map((match, index) => (
               <UpcomingMatchCard
                 key={match.id || `${validSport}-${index}`}

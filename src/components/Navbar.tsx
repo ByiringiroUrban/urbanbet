@@ -74,18 +74,28 @@ export default function Navbar() {
   ];
 
   useEffect(() => {
-    // Check if user is logged in
-    const authenticated = isAuthenticated();
-    setIsLoggedIn(authenticated);
-    
-    if (authenticated) {
-      setUserName(localStorage.getItem("userName") || "User");
-      setUserBalance(currency === "RWF" ? "1,500,000" : "1,250.00");
-      setUserIsAdmin(isAdminUser());
-    } else {
-      setUserIsAdmin(false);
-    }
+    const updateAuth = () => {
+      const authenticated = isAuthenticated();
+      setIsLoggedIn(authenticated);
+      
+      if (authenticated) {
+        setUserName(localStorage.getItem("userName") || "User");
+        setUserBalance(localStorage.getItem("userBalance") || "0");
+        setUserIsAdmin(isAdminUser());
+      } else {
+        setUserIsAdmin(false);
+        setUserName("");
+        setUserBalance("0");
+      }
+    };
+
+    updateAuth();
+    window.addEventListener('authChange', updateAuth);
+    return () => {
+      window.removeEventListener('authChange', updateAuth);
+    };
   }, [location.pathname, currency]);
+
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 

@@ -3,7 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ActiveBets from "./ActiveBets";
 import BetHistory from "./BetHistory";
 import AIPredictionsTab from "./AIPredictionsTab";
-import { BetRecord } from "@/services/supabaseService";
+import { BetRecord } from "@/services/database/types";
 
 interface DashboardTabsProps {
   betHistory: BetRecord[];

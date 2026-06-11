@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BetRecord } from "@/services/supabaseService";
+import { BetRecord } from "@/services/database/types";
 import { useNavigate } from "react-router-dom";
 
 interface ActiveBetsProps {

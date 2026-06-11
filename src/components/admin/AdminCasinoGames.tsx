@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { dbFallback, CasinoGame } from "@/utils/dbFallback";
+import { apiFetch } from "@/lib/api";
 import { Pencil, Trash, Plus, Save } from "lucide-react";
 
 const categories = [
@@ -27,7 +26,7 @@ const providers = [
 ];
 
 export default function AdminCasinoGames() {
-  const [games, setGames] = useState<CasinoGame[]>([]);
+  const [games, setGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState<string | null>(null);
   const { toast } = useToast();
@@ -43,17 +42,26 @@ export default function AdminCasinoGames() {
   });
   
   // Edit game form state
-  const [editData, setEditData] = useState<Partial<CasinoGame>>({});
+  const [editData, setEditData] = useState<any>({});
   
   useEffect(() => {
     loadGames();
   }, []);
 
-  const loadGames = () => {
+  const loadGames = async () => {
     setLoading(true);
     try {
-      const data = dbFallback.getCasinoGames();
-      setGames(data);
+      const data = await apiFetch('/casino/games/');
+      const formatted = (data || []).map((game: any) => ({
+        id: String(game.id),
+        title: game.title,
+        provider: game.provider,
+        category: game.category,
+        imageSrc: game.image_src || 'https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop',
+        isNew: game.is_new,
+        isPopular: game.is_popular
+      }));
+      setGames(formatted);
     } catch (error) {
       console.error('Error loading casino games:', error);
       toast({
@@ -110,7 +118,7 @@ export default function AdminCasinoGames() {
     });
   };
 
-  const handleCreateGame = () => {
+  const handleCreateGame = async () => {
     try {
       if (!formData.title || !formData.provider || !formData.imageSrc || !formData.category) {
         toast({
@@ -121,7 +129,18 @@ export default function AdminCasinoGames() {
         return;
       }
       
-      dbFallback.saveCasinoGame(formData);
+      await apiFetch('/casino/admin/games/', {
+        method: 'POST',
+        body: JSON.stringify({
+          title: formData.title,
+          provider: formData.provider,
+          category: formData.category,
+          image_url: formData.imageSrc,
+          is_new: formData.isNew,
+          is_popular: formData.isPopular,
+          is_active: true
+        })
+      });
       
       toast({
         title: "Success",
@@ -149,16 +168,26 @@ export default function AdminCasinoGames() {
     }
   };
 
-  const handleEditGame = (game: CasinoGame) => {
+  const handleEditGame = (game: any) => {
     setEditMode(game.id);
     setEditData(game);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editMode || !editData.id) return;
     
     try {
-      dbFallback.saveCasinoGame(editData);
+      await apiFetch(`/casino/admin/games/${editData.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          title: editData.title,
+          provider: editData.provider,
+          category: editData.category,
+          image_url: editData.imageSrc,
+          is_new: editData.isNew,
+          is_popular: editData.isPopular
+        })
+      });
       
       toast({
         title: "Success",
@@ -178,11 +207,13 @@ export default function AdminCasinoGames() {
     }
   };
 
-  const handleDeleteGame = (id: string) => {
+  const handleDeleteGame = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this casino game?')) return;
     
     try {
-      dbFallback.deleteCasinoGame(id);
+      await apiFetch(`/casino/admin/games/${id}/`, {
+        method: 'DELETE'
+      });
       
       toast({
         title: "Success",
@@ -401,4 +432,3 @@ export default function AdminCasinoGames() {
     </div>
   );
 }
-

@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
-import { isAdmin, addAdmin } from "@/utils/authUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { isAdmin } from "@/utils/authUtils";
 import AdminEvents from "@/components/admin/AdminEvents";
 import AdminUsers from "@/components/admin/AdminUsers";
 import AdminBets from "@/components/admin/AdminBets";
@@ -50,43 +49,6 @@ export default function Admin() {
     });
   };
 
-  const makeSelfAdmin = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to perform this action",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const result = await addAdmin(user.id);
-      
-      if (result) {
-        toast({
-          title: "Success",
-          description: "You are now an admin. Please refresh the page.",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to make you an admin. Please try again.",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error making self admin:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-[#03050a] flex items-center justify-center">
@@ -106,56 +68,20 @@ export default function Admin() {
             <h2 className="text-2xl font-black uppercase text-white tracking-tight">Access Denied</h2>
             <p className="text-slate-400 text-xs">You don't have permission to access the admin dashboard.</p>
           </div>
+          
+          <div className="bg-[#0c1122] border border-slate-850 p-4 rounded-lg text-left space-y-3 text-xs text-slate-300">
+            <p className="font-bold text-white">How to get Admin Access:</p>
+            <p>1. Open your terminal in the backend directory.</p>
+            <p>2. Create a superuser account in Django:</p>
+            <pre className="bg-[#05070d] p-2 rounded text-bet-primary font-mono text-[11px] overflow-x-auto">
+              python manage.py createsuperuser
+            </pre>
+            <p>3. Register or log in with that email/password on the login page.</p>
+          </div>
+
           <div className="flex flex-col gap-2">
             <Button onClick={enableDevMode} className="bg-bet-primary hover:bg-bet-primary/85 text-black font-black w-full">
-              Enable Development Mode
-            </Button>
-            <Button onClick={makeSelfAdmin} variant="outline" className="border-slate-800 hover:bg-slate-800 text-white w-full">
-              Make Me an Admin
-            </Button>
-            <Button 
-              variant="outline" 
-              className="border-slate-800 hover:bg-slate-800 text-white w-full"
-              onClick={async () => {
-                try {
-                  const { data: { user } } = await supabase.auth.getUser();
-                  if (!user) {
-                    toast({
-                      title: "Error",
-                      description: "You must be logged in to perform this action",
-                      variant: "destructive",
-                    });
-                    return;
-                  }
-                  
-                  const { data, error } = await supabase.rpc('create_first_admin', {
-                    admin_user_id: user.id
-                  });
-                  
-                  if (error) throw error;
-                  
-                  if (data === true) {
-                    toast({
-                      title: "Success",
-                      description: "You are now the first admin. Please refresh the page.",
-                    });
-                  } else {
-                    toast({
-                      title: "Not First Admin",
-                      description: "Admin roles already exist in the system.",
-                    });
-                  }
-                } catch (error) {
-                  console.error("Error:", error);
-                  toast({
-                    title: "Error",
-                    description: "An unexpected error occurred",
-                    variant: "destructive",
-                  });
-                }
-              }}
-            >
-              Try to Become First Admin
+              Enable Development Mode (Preview)
             </Button>
           </div>
         </div>

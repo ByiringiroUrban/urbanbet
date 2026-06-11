@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isAuthenticated } from "@/utils/authUtils";
 import Layout from "@/components/Layout";
 import AIInsightCard from "@/components/AIInsightCard";
-import { dbFallback } from "@/utils/dbFallback";
+import { apiFetch } from "@/lib/api";
 
 const AIPredictions = () => {
   const { toast } = useToast();
@@ -24,13 +24,30 @@ const AIPredictions = () => {
       return;
     }
     
-    setPredictions(dbFallback.getAIPredictions());
-    setIsLoading(false);
+    const fetchPredictions = async () => {
+      setIsLoading(true);
+      try {
+        const data = await apiFetch('/predictions/');
+        setPredictions(data || []);
+      } catch (error) {
+        console.error('Error fetching AI predictions:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPredictions();
   }, [navigate, toast]);
 
   if (isLoading) {
-    return null;
+    return (
+      <Layout>
+        <div className="flex justify-center items-center py-32">
+          <div className="w-8 h-8 border-4 border-bet-primary border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </Layout>
+    );
   }
+
 
   return (
     <Layout>

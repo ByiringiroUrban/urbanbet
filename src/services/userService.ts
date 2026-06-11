@@ -1,79 +1,43 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/lib/api';
 import { UserData } from './database/types';
 
 // Save or update user profile
 export const saveUser = async (userData: UserData): Promise<boolean> => {
   try {
-    if (!userData.id) {
-      console.error('User ID is required');
-      return false;
+    const response = await apiFetch('/auth/profile/', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        name: userData.name,
+        currency: userData.currency || 'RWF'
+      })
+    });
+    
+    if (response) {
+      window.dispatchEvent(new CustomEvent('authChange'));
+      return true;
     }
-
-    // Check if user exists in profiles
-    const { data: existingUser } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userData.id)
-      .single();
-
-    if (existingUser) {
-      // Update existing user
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          name: userData.name,
-          email: userData.email,
-          currency: userData.currency,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', userData.id);
-
-      if (error) throw error;
-    } else {
-      // Insert new user
-      const { error } = await supabase
-        .from('profiles')
-        .insert([{
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          balance: userData.balance || 50000,
-          currency: userData.currency || 'RWF',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }]);
-
-      if (error) throw error;
-    }
-
-    return true;
+    return false;
   } catch (error) {
-    console.error('Error saving user:', error);
+    console.error('Error saving user profile:', error);
     return false;
   }
 };
 
-// Get user profile by ID
+// Get user profile
 export const getUser = async (userId: string): Promise<UserData | null> => {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        console.log('User not found, will create profile on first login');
-        return null;
-      }
-      throw error;
-    }
-
-    return data as UserData;
+    const data = await apiFetch('/auth/profile/');
+    return {
+      id: String(data.id),
+      name: data.name,
+      email: data.email,
+      balance: Number(data.balance),
+      currency: data.currency,
+      provider: data.provider
+    };
   } catch (error) {
-    console.error('Error fetching user:', error);
+    console.error('Error fetching user profile:', error);
     return null;
   }
 };
@@ -81,41 +45,28 @@ export const getUser = async (userId: string): Promise<UserData | null> => {
 // Delete user account
 export const deleteUser = async (): Promise<{ success: boolean; message: string }> => {
   try {
-    // First get the current user
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return { success: false, message: "No user is currently logged in" };
-    }
-    
-    // Delete user's profile data first
-    const { error: profileDeleteError } = await supabase
-      .from('profiles')
-      .delete()
-      .eq('id', user.id);
-      
-    if (profileDeleteError) {
-      console.error('Error deleting user profile:', profileDeleteError);
-      return { success: false, message: `Failed to delete profile: ${profileDeleteError.message}` };
-    }
-    
-    // Since we don't have admin access, instead of deleting the user auth account
-    // we'll just sign them out globally which will invalidate all sessions
-    const { error: signOutError } = await supabase.auth.signOut({ 
-      scope: 'global' 
+    await apiFetch('/auth/delete-account/', {
+      method: 'DELETE'
     });
     
-    if (signOutError) {
-      console.error('Error signing out user:', signOutError);
-      return { success: false, message: `Failed to sign out: ${signOutError.message}` };
-    }
+    // Clear token session
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('userToken');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userBalance');
+    localStorage.removeItem('userCurrency');
     
+    window.dispatchEvent(new CustomEvent('authChange'));
     return { success: true, message: "Account successfully deleted" };
   } catch (error) {
     console.error('Error in deleteUser:', error);
     return { 
       success: false, 
-      message: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` 
+      message: error instanceof Error ? error.message : 'Failed to delete account'
     };
   }
 };
+

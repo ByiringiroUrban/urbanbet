@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { dbFallback } from "@/utils/dbFallback";
+import { apiFetch } from "@/lib/api";
 import { AIprediction } from "@/services/database/types";
 import { Pencil, Trash, Plus, Save, BrainCircuit } from "lucide-react";
 
@@ -31,11 +31,20 @@ export default function AdminPredictions() {
     loadPredictions();
   }, []);
 
-  const loadPredictions = () => {
+  const loadPredictions = async () => {
     setLoading(true);
     try {
-      const data = dbFallback.getAIPredictions();
-      setPredictions(data);
+      const data = await apiFetch('/predictions/');
+      const formatted = (data || []).map((pred: any) => ({
+        id: String(pred.id),
+        match: pred.match,
+        prediction: pred.prediction,
+        confidence: Number(pred.confidence),
+        analysis: pred.analysis,
+        trend: pred.trend,
+        odds: pred.odds
+      }));
+      setPredictions(formatted);
     } catch (error) {
       console.error("Failed to load predictions:", error);
       toast({
@@ -64,7 +73,7 @@ export default function AdminPredictions() {
     });
   };
 
-  const handleCreatePrediction = () => {
+  const handleCreatePrediction = async () => {
     if (!formData.match || !formData.prediction || !formData.analysis || !formData.odds) {
       toast({
         title: "Validation Error",
@@ -75,7 +84,18 @@ export default function AdminPredictions() {
     }
 
     try {
-      dbFallback.saveAIPrediction(formData);
+      await apiFetch('/predictions/admin/create/', {
+        method: 'POST',
+        body: JSON.stringify({
+          match: formData.match,
+          prediction: formData.prediction,
+          confidence: Number(formData.confidence),
+          odds: formData.odds,
+          analysis: formData.analysis,
+          trend: formData.trend
+        })
+      });
+      
       toast({
         title: "Success",
         description: "AI Prediction insight added successfully.",
@@ -108,11 +128,22 @@ export default function AdminPredictions() {
     setEditData(pred);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editMode || !editData.id) return;
 
     try {
-      dbFallback.saveAIPrediction(editData);
+      await apiFetch(`/predictions/admin/${editData.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          match: editData.match,
+          prediction: editData.prediction,
+          confidence: Number(editData.confidence),
+          odds: editData.odds,
+          analysis: editData.analysis,
+          trend: editData.trend
+        })
+      });
+      
       toast({
         title: "Success",
         description: "Prediction updated successfully.",
@@ -130,12 +161,15 @@ export default function AdminPredictions() {
     }
   };
 
-  const handleDelete = (id: string | undefined) => {
+  const handleDelete = async (id: string | undefined) => {
     if (!id) return;
     if (!window.confirm("Are you sure you want to delete this AI prediction?")) return;
 
     try {
-      dbFallback.deleteAIPrediction(id);
+      await apiFetch(`/predictions/admin/${id}/`, {
+        method: 'DELETE'
+      });
+      
       toast({
         title: "Deleted",
         description: "AI prediction deleted successfully.",
@@ -260,8 +294,8 @@ export default function AdminPredictions() {
                       <TableCell className="text-xs text-bet-primary font-bold">{pred.prediction}</TableCell>
                       <TableCell className="text-xs">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          pred.confidence >= 75 ? "bg-green-500/10 text-green-500 border border-green-500/20" :
-                          pred.confidence >= 60 ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
+                          (pred.confidence ?? 0) >= 75 ? "bg-green-500/10 text-green-500 border border-green-500/20" :
+                          (pred.confidence ?? 0) >= 60 ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20" :
                           "bg-red-500/10 text-red-500 border border-red-500/20"
                         }`}>
                           {pred.confidence}%

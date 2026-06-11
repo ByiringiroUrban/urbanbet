@@ -1,104 +1,42 @@
-import { mongoService } from '@/services/mongoService';
 import { logout as apiLogout } from '@/services/authService';
-import { supabase } from '@/integrations/supabase/client';
+import { apiFetch } from '@/lib/api';
+import { storeAuthSession } from '@/services/authService';
 
-// Interface for the return type of saveUser
-interface SaveUserResult {
-  success: boolean;
-  id?: string;
-}
-
-// Interface to define the expected shape of the MongoDB save result
-interface MongoSaveResult {
-  id?: string | number;
-  [key: string]: any;
-}
-
-// Mock function to simulate social provider auth
+// Mock function to simulate social provider auth using backend endpoint
 export const socialLogin = async (provider: 'google' | 'facebook' | 'apple') => {
   console.log(`Authenticating with ${provider}...`);
-  
-  // In a real implementation, this would integrate with the actual provider SDKs
-  // For now, we'll simulate a successful login with mock data
   
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 1000));
   
-  // Mock user data based on provider
-  const userData = {
-    id: `user-${Math.random().toString(36).substring(2, 9)}`,
-    name: provider === 'google' ? 'Google User' : 
-          provider === 'facebook' ? 'Facebook User' : 'Apple User',
-    email: `user.${provider}@example.com`,
-    provider
-  };
-  
+  const randomId = Math.random().toString(36).substring(2, 9);
+  const email = `user.${provider}.${randomId}@example.com`;
+  const name = `${provider.charAt(0).toUpperCase() + provider.slice(1)} User ${randomId}`;
+  const providerUserId = `social-${provider}-${randomId}`;
+
   try {
-    // Save user to MongoDB
-    const saveResult = await mongoService.saveUser({
-      name: userData.name,
-      email: userData.email,
-      provider: provider,
-      providerUserId: userData.id,
-      balance: 50000, // Starting balance in RWF
-      currency: 'RWF'
+    // Call the Django social login endpoint
+    const session = await apiFetch('/auth/social-login/', {
+      method: 'POST',
+      body: JSON.stringify({
+        provider,
+        provider_user_id: providerUserId,
+        email,
+        name
+      })
     });
     
-    // Create a proper SaveUserResult object
-    let result: SaveUserResult = {
-      success: false
-    };
-    
-    // Handle various types of saveResult with proper null checking
-    if (saveResult !== null && saveResult !== undefined) {
-      // Set success to true if we have a result
-      result.success = true;
-      
-      // Try to get an ID from the result if it exists
-      if (typeof saveResult === 'object') {
-        // Use type assertion to access id property safely
-        const resultObj = saveResult as { id?: string | number };
-        if (resultObj && resultObj.id) {
-          result.id = String(resultObj.id);
-        }
-      } else if (typeof saveResult === 'boolean') {
-        // If saveResult is just a boolean, use it for success
-        result.success = saveResult;
-      }
-    }
-    
-    if (result.success) {
-      // Store auth data in localStorage (in a real app, this would be more secure)
-      localStorage.setItem('userToken', result.id || `sample-jwt-token-${provider}-${userData.id}`);
-      localStorage.setItem('userName', userData.name);
-      localStorage.setItem('userEmail', userData.email);
-      localStorage.setItem('userProvider', provider);
-      
-      console.log('User logged in successfully, stored in MongoDB:', result);
-      
+    if (session && session.access) {
+      storeAuthSession(session);
       // Dispatch a custom event to notify other components about auth state change
       window.dispatchEvent(new CustomEvent('authChange'));
-      
-      return {
-        ...userData,
-        id: result.id || userData.id
-      };
+      return session.user;
+    } else {
+      throw new Error("Invalid session response from social login API");
     }
-    
-    console.error('Error in MongoDB save:', result);
-    return userData;
   } catch (error) {
-    console.error('Error during login process:', error);
-    
-    // Fall back to local storage only if MongoDB fails
-    localStorage.setItem('userToken', `sample-jwt-token-${provider}-${userData.id}`);
-    localStorage.setItem('userName', userData.name);
-    localStorage.setItem('userEmail', userData.email);
-    localStorage.setItem('userProvider', provider);
-    
-    window.dispatchEvent(new CustomEvent('authChange'));
-    
-    return userData;
+    console.error('Error during social login process:', error);
+    throw error;
   }
 };
 
@@ -152,59 +90,3 @@ export const isAdmin = async (): Promise<boolean> => {
   return isAdminUser();
 };
 
-// Function to create the first admin in the system using the create_first_admin function
-export const createFirstAdmin = async (userId: string): Promise<boolean> => {
-  try {
-    console.log("Attempting to create first admin with user ID:", userId);
-    
-    const { data, error } = await supabase.rpc('create_first_admin', {
-      admin_user_id: userId
-    });
-    
-    if (error) {
-      console.error("Error creating first admin:", error);
-      return false;
-    }
-    
-    console.log("Create first admin response:", data);
-    return data === true;
-  } catch (error) {
-    console.error("Error in createFirstAdmin:", error);
-    return false;
-  }
-};
-
-// Function to add a user as an admin (only callable by admins)
-export const addAdmin = async (userId: string): Promise<boolean> => {
-  try {
-    // First try to use the create_first_admin function
-    const isFirstAdmin = await createFirstAdmin(userId);
-    if (isFirstAdmin) {
-      console.log("Successfully created first admin");
-      return true;
-    }
-    
-    // If not the first admin, try regular insertion
-    const { error } = await supabase
-      .from('user_roles')
-      .insert([
-        { user_id: userId, role: 'admin' }
-      ]);
-    
-    if (error) {
-      // If it's a unique constraint error, the user might already be an admin
-      if (error.code === '23505') {
-        console.log("User is already an admin");
-        return true;
-      }
-      
-      console.error("Error adding admin:", error);
-      return false;
-    }
-    
-    return true;
-  } catch (error) {
-    console.error("Error in addAdmin:", error);
-    return false;
-  }
-};

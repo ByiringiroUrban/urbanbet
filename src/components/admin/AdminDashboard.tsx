@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/lib/supabase";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Users, CircleDollarSign, Calendar, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
@@ -46,62 +45,52 @@ export default function AdminDashboard() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      // Load total users count
-      const { count: usersCount, error: usersError } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
+      const { apiFetch } = await import("@/lib/api");
       
-      if (usersError) throw usersError;
+      // 1. Fetch users list from admin users endpoint
+      const usersData = await apiFetch('/auth/admin/users/');
+      const totalUsers = Array.isArray(usersData) ? usersData.length : 0;
       
-      // Load total bets count
-      const { count: betsCount, error: betsError } = await supabase
-        .from('bets')
-        .select('*', { count: 'exact', head: true });
+      // 2. Fetch bet statistics from admin stats endpoint
+      const betStatsData = await apiFetch('/bets/admin/stats/');
+      const totalBets = betStatsData?.summary?.total_bets || 0;
+      const totalWagered = Number(betStatsData?.summary?.total_wagered || 0);
       
-      if (betsError) throw betsError;
-      
-      // Load active events count
-      const { count: eventsCount, error: eventsError } = await supabase
-        .from('events')
-        .select('*', { count: 'exact', head: true })
-        .gt('start_time', new Date().toISOString());
-      
-      if (eventsError) throw eventsError;
-      
-      // Calculate revenue (mock implementation)
-      // In a real system, you'd calculate based on actual bet outcomes
-      const revenue = betsCount ? betsCount * 12500 : 0; // Simple mock calculation
+      // 3. Fetch active events count
+      const eventsData = await apiFetch('/sports/events/');
+      const activeEvents = Array.isArray(eventsData) ? eventsData.length : 0;
       
       setStats({
-        totalUsers: usersCount || 0,
-        totalBets: betsCount || 0,
-        activeEvents: eventsCount || 0,
-        revenue,
-        weeklyChange: 5.25, // Mock data 
-        monthlyChange: -2.5  // Mock data
+        totalUsers,
+        totalBets,
+        activeEvents,
+        revenue: totalWagered,
+        weeklyChange: 5.25, // Mock change metric
+        monthlyChange: -2.5  // Mock change metric
       });
       
     } catch (error) {
       console.error('Error loading dashboard data:', error);
       toast({
         title: "Error",
-        description: "Failed to load dashboard data. Using mock data instead.",
+        description: "Failed to load dashboard data from database.",
         variant: "destructive",
       });
       
-      // Set mock data as fallback
+      // Set fallbacks if server has issues
       setStats({
-        totalUsers: 342,
-        totalBets: 1850,
-        activeEvents: 24,
-        revenue: 4750000,
-        weeklyChange: 5.25,
-        monthlyChange: -2.5
+        totalUsers: 0,
+        totalBets: 0,
+        activeEvents: 0,
+        revenue: 0,
+        weeklyChange: 0,
+        monthlyChange: 0
       });
     } finally {
       setLoading(false);
     }
   };
+
   
   return (
     <div>

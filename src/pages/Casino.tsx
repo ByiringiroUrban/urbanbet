@@ -5,104 +5,39 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import Layout from "@/components/Layout";
 import CasinoGameCard from "@/components/CasinoGameCard";
-import { dbFallback } from "@/utils/dbFallback";
-
-// Mock data for casino games
-const casinoGames = [
-  {
-    title: "Neon City Slots",
-    imageSrc: "https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop",
-    provider: "NetPlay",
-    isNew: true,
-    category: "slots"
-  },
-  {
-    title: "Royal Blackjack",
-    imageSrc: "https://images.unsplash.com/photo-1511193311914-0346f16efe90?q=80&w=2073&auto=format&fit=crop",
-    provider: "Evolution Gaming",
-    isPopular: true,
-    category: "table"
-  },
-  {
-    title: "Mega Fortune Wheel",
-    imageSrc: "https://images.unsplash.com/photo-1629895218613-a532fd7a8313?q=80&w=1932&auto=format&fit=crop",
-    provider: "PlayTech",
-    isPopular: true,
-    category: "wheel"
-  },
-  {
-    title: "Mystic Gems",
-    imageSrc: "https://images.unsplash.com/photo-1619967435599-80c18fb1604c?q=80&w=1974&auto=format&fit=crop",
-    provider: "NetPlay",
-    isNew: true,
-    category: "slots"
-  },
-  {
-    title: "Golden Poker",
-    imageSrc: "https://images.unsplash.com/photo-1541278107931-e006523892df?q=80&w=2071&auto=format&fit=crop",
-    provider: "Evolution Gaming",
-    category: "table"
-  },
-  {
-    title: "Asian Fortune",
-    imageSrc: "https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop",
-    provider: "PlayTech",
-    category: "slots"
-  },
-  {
-    title: "Ultra Roulette",
-    imageSrc: "https://images.unsplash.com/photo-1612287230202-1ff1d85d1bdf?q=80&w=2071&auto=format&fit=crop",
-    provider: "Evolution Gaming",
-    isPopular: true,
-    category: "table"
-  },
-  {
-    title: "Crypto Miner",
-    imageSrc: "https://images.unsplash.com/photo-1642794816460-74f3e2e1d9b5?q=80&w=1932&auto=format&fit=crop",
-    provider: "NetPlay",
-    isNew: true,
-    category: "slots"
-  },
-  {
-    title: "Live Dealer Blackjack",
-    imageSrc: "https://images.unsplash.com/photo-1522542550221-31fd19575a2d?q=80&w=2070&auto=format&fit=crop",
-    provider: "Evolution Gaming",
-    isPopular: true,
-    category: "live"
-  },
-  {
-    title: "VIP Live Roulette",
-    imageSrc: "https://images.unsplash.com/photo-1606167668584-78701c57f13d?q=80&w=2070&auto=format&fit=crop",
-    provider: "Evolution Gaming",
-    isPopular: true,
-    category: "live"
-  },
-  {
-    title: "Mega Diamond Jackpot",
-    imageSrc: "https://images.unsplash.com/photo-1596838132830-8535ef812c75?q=80&w=2070&auto=format&fit=crop",
-    provider: "NetPlay",
-    isNew: true,
-    category: "jackpot"
-  },
-  {
-    title: "Millionaire Maker",
-    imageSrc: "https://images.unsplash.com/photo-1518893883800-45cd0954574b?q=80&w=1974&auto=format&fit=crop",
-    provider: "PlayTech",
-    isPopular: true,
-    category: "jackpot"
-  }
-];
+import { apiFetch } from "@/lib/api";
 
 export default function Casino() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("all");
   const [games, setGames] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
-    setGames(dbFallback.getCasinoGames());
+    const fetchGames = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch('/casino/games/');
+        const mapped = (data || []).map((game: any) => ({
+          id: String(game.id),
+          title: game.title,
+          provider: game.provider,
+          category: game.category,
+          imageSrc: game.image_src || 'https://images.unsplash.com/photo-1596838132330-5211dbd5c461?q=80&w=2070&auto=format&fit=crop',
+          isNew: game.is_new,
+          isPopular: game.is_popular
+        }));
+        setGames(mapped);
+      } catch (error) {
+        console.error('Error fetching casino games:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGames();
   }, []);
-  
+
   useEffect(() => {
     const path = location.pathname;
     if (path === "/casino/slots") {
@@ -183,7 +118,11 @@ export default function Casino() {
         
         {/* Games Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredGames.length > 0 ? (
+          {loading ? (
+            <div className="col-span-full flex justify-center items-center py-16">
+              <div className="w-8 h-8 border-4 border-bet-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : filteredGames.length > 0 ? (
             filteredGames.map((game, index) => (
               <CasinoGameCard
                 key={index}

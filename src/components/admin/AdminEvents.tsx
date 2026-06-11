@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,54 +5,61 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { SportEvent } from "@/services/database/types";
 import { useToast } from "@/hooks/use-toast";
-import { dbFallback } from "@/utils/dbFallback";
+import { apiFetch } from "@/lib/api";
 import { Pencil, Trash, Plus, Save } from "lucide-react";
 
 export default function AdminEvents() {
-  const [events, setEvents] = useState<SportEvent[]>([]);
-  const [sports, setSports] = useState<{ id: string; name: string }[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [sports, setSports] = useState<any[]>([]);
+  const [countries, setCountries] = useState<any[]>([]);
+  const [leagues, setLeagues] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState<string | null>(null);
   const { toast } = useToast();
   
   // New event form state
   const [formData, setFormData] = useState({
-    sportId: "football",
-    homeTeam: "",
-    awayTeam: "",
+    sport: "",
     league: "",
     country: "",
+    homeTeam: "",
+    awayTeam: "",
     startTime: "",
-    isLive: false,
+    status: "scheduled",
     homeOdds: 1.85,
     drawOdds: 3.25,
     awayOdds: 2.50
   });
   
   // Edit event form state
-  const [editData, setEditData] = useState<Partial<SportEvent>>({});
+  const [editData, setEditData] = useState<any>({});
   
   useEffect(() => {
-    loadSports();
+    loadDropdowns();
     loadEvents();
   }, []);
 
-  const loadSports = () => {
-    // Return the local sports categories
-    setSports([
-      { id: 'football', name: 'Football' },
-      { id: 'basketball', name: 'Basketball' },
-      { id: 'tennis', name: 'Tennis' }
-    ]);
+  const loadDropdowns = async () => {
+    try {
+      const sportsList = await apiFetch('/sports/');
+      setSports(sportsList || []);
+      
+      const countriesList = await apiFetch('/sports/countries/');
+      setCountries(countriesList || []);
+      
+      const leaguesList = await apiFetch('/sports/leagues/');
+      setLeagues(leaguesList || []);
+    } catch (error) {
+      console.error('Error loading form options:', error);
+    }
   };
 
-  const loadEvents = () => {
+  const loadEvents = async () => {
     setLoading(true);
     try {
-      const data = dbFallback.getEvents();
-      setEvents(data);
+      const data = await apiFetch('/sports/events/');
+      setEvents(data || []);
     } catch (error) {
       console.error('Error loading events:', error);
       toast({
@@ -82,46 +88,32 @@ export default function AdminEvents() {
     });
   };
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-
-  const handleEditSelectChange = (name: string, value: string) => {
-    setEditData({
-      ...editData,
-      [name]: value
-    });
-  };
-
-  const handleSwitchChange = (name: string, checked: boolean) => {
-    setFormData({
-      ...formData,
-      [name]: checked
-    });
-  };
-
-  const handleEditSwitchChange = (name: string, checked: boolean) => {
-    setEditData({
-      ...editData,
-      [name]: checked
-    });
-  };
-
-  const handleCreateEvent = () => {
+  const handleCreateEvent = async () => {
     try {
-      if (!formData.homeTeam || !formData.awayTeam || !formData.startTime || !formData.sportId) {
+      if (!formData.homeTeam || !formData.awayTeam || !formData.startTime || !formData.sport || !formData.league) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields.",
+          description: "Please fill in all required fields (Sport, League, Teams, Start Time).",
           variant: "destructive",
         });
         return;
       }
       
-      dbFallback.saveEvent(formData);
+      await apiFetch('/sports/admin/events/', {
+        method: 'POST',
+        body: JSON.stringify({
+          sport: Number(formData.sport),
+          league: Number(formData.league),
+          country: formData.country ? Number(formData.country) : null,
+          home_team: formData.homeTeam,
+          away_team: formData.awayTeam,
+          start_time: new Date(formData.startTime).toISOString(),
+          status: formData.status,
+          home_odds: Number(formData.homeOdds),
+          draw_odds: formData.drawOdds ? Number(formData.drawOdds) : null,
+          away_odds: Number(formData.awayOdds)
+        })
+      });
       
       toast({
         title: "Success",
@@ -130,13 +122,13 @@ export default function AdminEvents() {
       
       // Reset form
       setFormData({
-        sportId: "football",
-        homeTeam: "",
-        awayTeam: "",
+        sport: "",
         league: "",
         country: "",
+        homeTeam: "",
+        awayTeam: "",
         startTime: "",
-        isLive: false,
+        status: "scheduled",
         homeOdds: 1.85,
         drawOdds: 3.25,
         awayOdds: 2.50
@@ -147,22 +139,48 @@ export default function AdminEvents() {
       console.error('Error creating event:', error);
       toast({
         title: "Error",
-        description: "Failed to create event.",
+        description: error instanceof Error ? error.message : "Failed to create event.",
         variant: "destructive",
       });
     }
   };
 
-  const handleEditEvent = (event: SportEvent) => {
-    setEditMode(event.id);
-    setEditData(event);
+  const handleEditEvent = (event: any) => {
+    setEditMode(String(event.id));
+    setEditData({
+      id: event.id,
+      sport: event.sport,
+      league: event.league,
+      country: event.country,
+      homeTeam: event.home_team,
+      awayTeam: event.away_team,
+      startTime: event.start_time,
+      status: event.status,
+      homeOdds: Number(event.home_odds),
+      drawOdds: event.draw_odds ? Number(event.draw_odds) : null,
+      awayOdds: Number(event.away_odds)
+    });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editMode || !editData.id) return;
     
     try {
-      dbFallback.saveEvent(editData);
+      await apiFetch(`/sports/admin/events/${editData.id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          sport: Number(editData.sport),
+          league: Number(editData.league),
+          country: editData.country ? Number(editData.country) : null,
+          home_team: editData.homeTeam,
+          away_team: editData.awayTeam,
+          start_time: new Date(editData.startTime).toISOString(),
+          status: editData.status,
+          home_odds: Number(editData.homeOdds),
+          draw_odds: editData.drawOdds ? Number(editData.drawOdds) : null,
+          away_odds: Number(editData.awayOdds)
+        })
+      });
       
       toast({
         title: "Success",
@@ -176,17 +194,19 @@ export default function AdminEvents() {
       console.error('Error updating event:', error);
       toast({
         title: "Error",
-        description: "Failed to update event.",
+        description: error instanceof Error ? error.message : "Failed to update event.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDeleteEvent = (id: string) => {
+  const handleDeleteEvent = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this event?')) return;
     
     try {
-      dbFallback.deleteEvent(id);
+      await apiFetch(`/sports/admin/events/${id}/`, {
+        method: 'DELETE'
+      });
       
       toast({
         title: "Success",
@@ -198,7 +218,33 @@ export default function AdminEvents() {
       console.error('Error deleting event:', error);
       toast({
         title: "Error",
-        description: "Failed to delete event.",
+        description: error instanceof Error ? error.message : "Failed to delete event.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Settle Score
+  const handleSettleScore = async (id: string, homeScore: number, awayScore: number, statusVal: string) => {
+    try {
+      await apiFetch(`/sports/admin/events/${id}/score/`, {
+        method: 'POST',
+        body: JSON.stringify({
+          home_score: homeScore,
+          away_score: awayScore,
+          status: statusVal
+        })
+      });
+      toast({
+        title: "Score updated",
+        description: "Match score settled and updated successfully.",
+      });
+      loadEvents();
+    } catch (error) {
+      console.error('Error settling score:', error);
+      toast({
+        title: "Error",
+        description: "Failed to settle match score.",
         variant: "destructive",
       });
     }
@@ -213,14 +259,45 @@ export default function AdminEvents() {
         <h3 className="text-sm font-black text-white uppercase tracking-wider mb-4">Create New Event</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
-            <Label htmlFor="sportId">Sport*</Label>
-            <Select value={formData.sportId} onValueChange={(value) => handleSelectChange('sportId', value)}>
+            <Label>Sport*</Label>
+            <Select value={formData.sport} onValueChange={(value) => setFormData({ ...formData, sport: value })}>
               <SelectTrigger className="bg-[#0a0e1b] border-slate-800">
                 <SelectValue placeholder="Select Sport" />
               </SelectTrigger>
               <SelectContent>
                 {sports.map(sport => (
-                  <SelectItem key={sport.id} value={sport.id}>{sport.name}</SelectItem>
+                  <SelectItem key={sport.id} value={String(sport.id)}>{sport.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>League*</Label>
+            <Select value={formData.league} onValueChange={(value) => setFormData({ ...formData, league: value })}>
+              <SelectTrigger className="bg-[#0a0e1b] border-slate-800">
+                <SelectValue placeholder="Select League" />
+              </SelectTrigger>
+              <SelectContent>
+                {leagues
+                  .filter(l => !formData.sport || String(l.sport) === formData.sport)
+                  .map(league => (
+                    <SelectItem key={league.id} value={String(league.id)}>{league.name}</SelectItem>
+                  ))
+                }
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>Country</Label>
+            <Select value={formData.country} onValueChange={(value) => setFormData({ ...formData, country: value })}>
+              <SelectTrigger className="bg-[#0a0e1b] border-slate-800">
+                <SelectValue placeholder="Select Country" />
+              </SelectTrigger>
+              <SelectContent>
+                {countries.map(c => (
+                  <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -237,16 +314,6 @@ export default function AdminEvents() {
           </div>
           
           <div>
-            <Label htmlFor="league">League</Label>
-            <Input id="league" name="league" value={formData.league} onChange={handleInputChange} placeholder="e.g. Premier League" className="bg-[#0a0e1b] border-slate-800" />
-          </div>
-          
-          <div>
-            <Label htmlFor="country">Country</Label>
-            <Input id="country" name="country" value={formData.country} onChange={handleInputChange} placeholder="e.g. england" className="bg-[#0a0e1b] border-slate-800" />
-          </div>
-          
-          <div>
             <Label htmlFor="startTime">Start Time*</Label>
             <Input id="startTime" name="startTime" type="datetime-local" value={formData.startTime} onChange={handleInputChange} className="bg-[#0a0e1b] border-slate-800 text-slate-100" />
           </div>
@@ -257,7 +324,7 @@ export default function AdminEvents() {
           </div>
 
           <div>
-            <Label htmlFor="drawOdds">Draw Odds (Optional)</Label>
+            <Label htmlFor="drawOdds">Draw Odds</Label>
             <Input id="drawOdds" name="drawOdds" type="number" step="0.01" value={formData.drawOdds} onChange={handleInputChange} className="bg-[#0a0e1b] border-slate-800" />
           </div>
 
@@ -265,10 +332,21 @@ export default function AdminEvents() {
             <Label htmlFor="awayOdds">Away Odds*</Label>
             <Input id="awayOdds" name="awayOdds" type="number" step="0.01" value={formData.awayOdds} onChange={handleInputChange} className="bg-[#0a0e1b] border-slate-800" />
           </div>
-          
-          <div className="flex items-center space-x-2 mt-6">
-            <Switch id="isLive" checked={formData.isLive} onCheckedChange={(checked) => handleSwitchChange('isLive', checked)} />
-            <Label htmlFor="isLive">Live Event</Label>
+
+          <div>
+            <Label>Status</Label>
+            <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <SelectTrigger className="bg-[#0a0e1b] border-slate-800">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="scheduled">Scheduled</SelectItem>
+                <SelectItem value="live">Live</SelectItem>
+                <SelectItem value="finished">Finished</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="postponed">Postponed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
         
@@ -282,12 +360,12 @@ export default function AdminEvents() {
         <Table>
           <TableHeader className="bg-[#0a0e1b]">
             <TableRow className="border-slate-800">
-              <TableHead className="text-slate-400">Home Team</TableHead>
-              <TableHead className="text-slate-400">Away Team</TableHead>
-              <TableHead className="text-slate-400">League</TableHead>
+              <TableHead className="text-slate-400">Teams</TableHead>
+              <TableHead className="text-slate-400">Sport / League</TableHead>
               <TableHead className="text-slate-400">Start Time</TableHead>
               <TableHead className="text-slate-400">Odds (1/X/2)</TableHead>
-              <TableHead className="text-slate-400">Live</TableHead>
+              <TableHead className="text-slate-400">Status / Live</TableHead>
+              <TableHead className="text-slate-400">Scores (H - A)</TableHead>
               <TableHead className="text-right text-slate-400">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -303,40 +381,34 @@ export default function AdminEvents() {
             ) : events.length > 0 ? (
               events.map(event => (
                 <TableRow key={event.id} className="border-slate-800 hover:bg-slate-900/30">
-                  {editMode === event.id ? (
+                  {editMode === String(event.id) ? (
                     // Edit Mode
                     <>
-                      <TableCell>
-                        <Input 
-                          name="homeTeam" 
-                          value={editData.homeTeam || ''} 
-                          onChange={handleEditInputChange} 
-                          className="h-8 bg-[#0a0e1b] border-slate-800"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input 
-                          name="awayTeam" 
-                          value={editData.awayTeam || ''} 
-                          onChange={handleEditInputChange} 
-                          className="h-8 bg-[#0a0e1b] border-slate-800"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Input 
-                          name="league" 
-                          value={editData.league || ''} 
-                          onChange={handleEditInputChange} 
-                          className="h-8 bg-[#0a0e1b] border-slate-800"
-                        />
+                      <TableCell colSpan={2}>
+                        <div className="flex flex-col gap-2">
+                          <Input 
+                            name="homeTeam" 
+                            value={editData.homeTeam || ''} 
+                            onChange={handleEditInputChange} 
+                            placeholder="Home Team"
+                            className="h-8 bg-[#0a0e1b] border-slate-800 text-xs"
+                          />
+                          <Input 
+                            name="awayTeam" 
+                            value={editData.awayTeam || ''} 
+                            onChange={handleEditInputChange} 
+                            placeholder="Away Team"
+                            className="h-8 bg-[#0a0e1b] border-slate-800 text-xs"
+                          />
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Input 
                           name="startTime" 
                           type="datetime-local" 
-                          value={typeof editData.startTime === 'string' ? editData.startTime.substring(0,16) : ''} 
+                          value={editData.startTime ? editData.startTime.substring(0,16) : ''} 
                           onChange={handleEditInputChange} 
-                          className="h-8 bg-[#0a0e1b] border-slate-800 text-slate-100"
+                          className="h-8 bg-[#0a0e1b] border-slate-800 text-slate-100 text-xs"
                         />
                       </TableCell>
                       <TableCell>
@@ -347,11 +419,20 @@ export default function AdminEvents() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Switch 
-                          checked={!!editData.isLive} 
-                          onCheckedChange={(checked) => handleEditSwitchChange('isLive', checked)} 
-                        />
+                        <Select value={String(editData.status)} onValueChange={(val) => setEditData({ ...editData, status: val })}>
+                          <SelectTrigger className="h-8 bg-[#0a0e1b] border-slate-800 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="scheduled">Scheduled</SelectItem>
+                            <SelectItem value="live">Live</SelectItem>
+                            <SelectItem value="finished">Finished</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="postponed">Postponed</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={handleSaveEdit} className="mr-2 border-slate-700">
                           <Save className="h-4 w-4" />
@@ -364,25 +445,75 @@ export default function AdminEvents() {
                   ) : (
                     // View Mode
                     <>
-                      <TableCell className="font-bold text-white text-xs">{event.homeTeam}</TableCell>
-                      <TableCell className="font-bold text-white text-xs">{event.awayTeam}</TableCell>
-                      <TableCell className="text-xs text-slate-300">{event.league}</TableCell>
-                      <TableCell className="text-xs text-slate-400">{event.startTime ? new Date(event.startTime).toLocaleString() : `${event.date} ${event.time}`}</TableCell>
+                      <TableCell className="text-xs">
+                        <div className="font-bold text-white">{event.home_team}</div>
+                        <div className="text-slate-400">vs</div>
+                        <div className="font-bold text-white">{event.away_team}</div>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-300">
+                        <div className="font-semibold text-bet-primary">{event.sport_name}</div>
+                        <div>{event.league_name}</div>
+                      </TableCell>
+                      <TableCell className="text-xs text-slate-400">
+                        {event.start_time ? new Date(event.start_time).toLocaleString() : ''}
+                      </TableCell>
                       <TableCell className="text-xs font-mono text-bet-primary font-bold">
-                        {event.homeOdds?.toFixed(2)} / {event.drawOdds ? event.drawOdds.toFixed(2) : "N/A"} / {event.awayOdds?.toFixed(2)}
+                        {Number(event.home_odds).toFixed(2)} / {event.draw_odds ? Number(event.draw_odds).toFixed(2) : "N/A"} / {Number(event.away_odds).toFixed(2)}
                       </TableCell>
                       <TableCell className="text-xs">
-                        {event.isLive ? (
+                        {event.is_live ? (
                           <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-2 py-0.5 rounded text-[10px] font-black uppercase animate-pulse">LIVE</span>
                         ) : (
-                          <span className="text-slate-500">No</span>
+                          <span className="text-slate-400 capitalize">{event.status}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {event.status === 'finished' || event.status === 'live' ? (
+                          <div className="flex gap-2 items-center">
+                            <span className="font-black text-white">{event.home_score ?? 0}</span>
+                            <span className="text-slate-500">-</span>
+                            <span className="font-black text-white">{event.away_score ?? 0}</span>
+                          </div>
+                        ) : (
+                          <div className="flex gap-2 items-center">
+                            <input 
+                              type="number" 
+                              placeholder="H" 
+                              id={`hs-${event.id}`}
+                              defaultValue={event.home_score ?? 0}
+                              className="w-10 h-7 bg-[#0a0e1b] border border-slate-800 text-center rounded text-xs text-white" 
+                            />
+                            <input 
+                              type="number" 
+                              placeholder="A" 
+                              id={`as-${event.id}`}
+                              defaultValue={event.away_score ?? 0}
+                              className="w-10 h-7 bg-[#0a0e1b] border border-slate-800 text-center rounded text-xs text-white" 
+                            />
+                            <Button 
+                              size="sm" 
+                              className="h-7 text-[10px] bg-bet-secondary text-black font-black hover:bg-bet-secondary/80"
+                              onClick={() => {
+                                const hEl = document.getElementById(`hs-${event.id}`) as HTMLInputElement;
+                                const aEl = document.getElementById(`as-${event.id}`) as HTMLInputElement;
+                                handleSettleScore(
+                                  String(event.id), 
+                                  parseInt(hEl.value) || 0, 
+                                  parseInt(aEl.value) || 0,
+                                  'finished'
+                                );
+                              }}
+                            >
+                              Settle
+                            </Button>
+                          </div>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="outline" size="sm" onClick={() => handleEditEvent(event)} className="mr-2 border-slate-800 text-slate-400 hover:text-white">
                           <Pencil className="h-3.5 w-3.5" />
                         </Button>
-                        <Button variant="outline" size="sm" onClick={() => handleDeleteEvent(event.id)} className="border-slate-800 text-slate-400 hover:text-red-400">
+                        <Button variant="outline" size="sm" onClick={() => handleDeleteEvent(String(event.id))} className="border-slate-800 text-slate-400 hover:text-red-400">
                           <Trash className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
@@ -401,4 +532,3 @@ export default function AdminEvents() {
     </div>
   );
 }
-

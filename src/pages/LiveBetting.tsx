@@ -5,21 +5,52 @@ import { Search, Clock, BarChart2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Layout from "@/components/Layout";
 import UpcomingMatchCard from "@/components/UpcomingMatchCard";
-import { dbFallback } from "@/utils/dbFallback";
+import { apiFetch } from "@/lib/api";
 
 export default function LiveBetting() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeSport, setActiveSport] = useState("all");
   const [activeMatches, setActiveMatches] = useState<any[]>([]);
+  const [allLiveEvents, setAllLiveEvents] = useState<any[]>([]);
   const [expandedMatchId, setExpandedMatchId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   
   const handleExpandMarket = (matchId: string | null) => {
     setExpandedMatchId(matchId);
   };
   
   useEffect(() => {
-    const liveEvents = dbFallback.getEvents().filter(event => event.isLive === true);
-    let filtered = liveEvents;
+    const fetchLive = async () => {
+      setLoading(true);
+      try {
+        const data = await apiFetch('/sports/events/live/');
+        const mapped = (data || []).map((evt: any) => ({
+          id: String(evt.id),
+          homeTeam: evt.home_team,
+          awayTeam: evt.away_team,
+          league: evt.league_name,
+          time: new Date(evt.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(evt.start_time).toLocaleDateString([], { day: '2-digit', month: 'short' }),
+          homeOdds: Number(evt.home_odds),
+          drawOdds: evt.draw_odds ? Number(evt.draw_odds) : undefined,
+          awayOdds: Number(evt.away_odds),
+          isLive: evt.is_live,
+          sportId: evt.sport_name?.toLowerCase(),
+          country: evt.country_name?.toLowerCase(),
+          startTime: evt.start_time
+        }));
+        setAllLiveEvents(mapped);
+      } catch (error) {
+        console.error('Error fetching live events:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLive();
+  }, []);
+
+  useEffect(() => {
+    let filtered = allLiveEvents;
     
     if (searchQuery) {
       filtered = filtered.filter(match => 
@@ -34,7 +65,8 @@ export default function LiveBetting() {
     }
     
     setActiveMatches(filtered);
-  }, [searchQuery, activeSport]);
+  }, [allLiveEvents, searchQuery, activeSport]);
+
 
   return (
     <Layout>
@@ -93,7 +125,11 @@ export default function LiveBetting() {
         
         {/* Matches stack */}
         <div className="flex flex-col gap-4">
-          {activeMatches.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-16">
+              <div className="w-8 h-8 border-4 border-bet-primary border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : activeMatches.length > 0 ? (
             activeMatches.map((match) => (
               <UpcomingMatchCard
                 key={match.id}
