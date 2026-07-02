@@ -8,6 +8,8 @@ import { BettingProviderRoot } from "@/contexts/BettingContext";
 import GlobalBettingSlip from "@/components/GlobalBettingSlip";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import AIPredictions from "./pages/AIPredictions";
@@ -38,6 +40,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/register" element={<Register />} />
             <Route path="/dashboard" element={<ProtectedUserRoute><Dashboard /></ProtectedUserRoute>} />
             <Route path="/ai-predictions" element={<AIPredictions />} />

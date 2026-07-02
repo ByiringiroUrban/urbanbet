@@ -120,3 +120,33 @@ export const deleteAccount = async (): Promise<{ success: boolean; error?: strin
     };
   }
 };
+
+export const forgotPassword = async (email: string): Promise<any> => {
+  return await apiFetch('/auth/forgot-password/', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+};
+
+export const resetPassword = async (data: any): Promise<any> => {
+  return await apiFetch('/auth/reset-password/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+export const updateProfile = async (data: any): Promise<any> => {
+  return await apiFetch('/auth/profile/', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};
+
+export const changePassword = async (data: any): Promise<any> => {
+  return await apiFetch('/auth/change-password/', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+};
+
+
