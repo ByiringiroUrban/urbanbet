@@ -51,6 +51,8 @@ class SocialLoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
@@ -59,11 +61,30 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'email', 'balance', 'role', 'provider', 'date_joined', 'last_login']
 
+    def get_avatar(self, obj):
+        if not obj.avatar:
+            return None
+        avatar_str = str(obj.avatar)
+        if avatar_str.startswith('http://') or avatar_str.startswith('https://'):
+            return avatar_str
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri(obj.avatar.url)
+        return obj.avatar.url
+
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+
     class Meta:
         model = User
         fields = ['name', 'phone', 'currency', 'avatar']
+
+    def validate_avatar(self, value):
+        if not value:
+            return None
+        return value
+
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -98,3 +119,25 @@ class TokenPairSerializer(serializers.Serializer):
             'access': str(refresh.access_token),
             'user': UserProfileSerializer(user).data,
         }
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("No user is registered with this email address.")
+        return value
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    uid = serializers.CharField()
+    token = serializers.CharField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    password_confirm = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs.pop('password_confirm'):
+            raise serializers.ValidationError({'password_confirm': 'Passwords do not match.'})
+        return attrs
+

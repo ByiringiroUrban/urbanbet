@@ -8,6 +8,8 @@ urlpatterns = [
     path('logout/', views.LogoutView.as_view(), name='auth_logout'),
     path('profile/', views.ProfileView.as_view(), name='auth_profile'),
     path('change-password/', views.ChangePasswordView.as_view(), name='auth_change_password'),
+    path('forgot-password/', views.ForgotPasswordView.as_view(), name='auth_forgot_password'),
+    path('reset-password/', views.ResetPasswordView.as_view(), name='auth_reset_password'),
     path('delete-account/', views.DeleteAccountView.as_view(), name='auth_delete_account'),
 
     # Admin

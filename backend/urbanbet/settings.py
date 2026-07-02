@@ -155,3 +155,8 @@ SPECTACULAR_SETTINGS = {
 }
 
 EXCHANGE_RATE_USD_TO_RWF = config('EXCHANGE_RATE_USD_TO_RWF', default=1200, cast=int)
+
+# Email Settings for local testing
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'support@urbanbet.com'
+

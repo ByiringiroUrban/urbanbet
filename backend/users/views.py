@@ -6,6 +6,12 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.mail import send_mail
+from django.conf import settings
+
 from .models import User
 from .serializers import (
     RegisterSerializer,
@@ -16,6 +22,8 @@ from .serializers import (
     ChangePasswordSerializer,
     UserListSerializer,
     TokenPairSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
 )
 
 
@@ -167,3 +175,86 @@ def adjust_balance(request, pk):
         return Response({'detail': 'Insufficient balance.'}, status=status.HTTP_400_BAD_REQUEST)
     user.save(update_fields=['balance'])
     return Response({'balance': str(user.balance)})
+
+
+class ForgotPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        email = serializer.validated_data['email']
+        user = User.objects.get(email=email)
+
+        # Generate token and uid
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        # Build reset link
+        # Use HTTP_REFERER or default origin to point to front-end page
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            from urllib.parse import urlparse
+            parsed_referer = urlparse(referer)
+            frontend_origin = f"{parsed_referer.scheme}://{parsed_referer.netloc}"
+        else:
+            frontend_origin = "http://localhost:8080" # Default frontend port
+
+        reset_link = f"{frontend_origin}/reset-password?token={token}&uid={uid}"
+
+        # Send email
+        subject = "Password Reset Requested - Urban Bet"
+        message = (
+            f"Hello {user.name or 'User'},\n\n"
+            f"You are receiving this email because we received a password reset request for your account.\n\n"
+            f"Please click the link below to reset your password:\n"
+            f"{reset_link}\n\n"
+            f"If you did not request a password reset, no further action is required.\n\n"
+            f"Best regards,\n"
+            f"Urban Bet Team"
+        )
+        
+        send_mail(
+            subject=subject,
+            message=message,
+            from_email=None,  # Uses DEFAULT_FROM_EMAIL
+            recipient_list=[email],
+            fail_silently=False,
+        )
+
+        response_data = {'detail': 'Password reset link sent to your email.'}
+        if settings.DEBUG:
+            response_data['reset_link'] = reset_link
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        uid_b64 = serializer.validated_data['uid']
+        token = serializer.validated_data['token']
+        new_password = serializer.validated_data['password']
+
+        try:
+            uid = force_str(urlsafe_base64_decode(uid_b64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'detail': 'Invalid user ID.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({'detail': 'Invalid or expired reset token.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Token is valid, set password
+        user.set_password(new_password)
+        user.save()
+
+        return Response({'detail': 'Password has been reset successfully.'}, status=status.HTTP_200_OK)
+
