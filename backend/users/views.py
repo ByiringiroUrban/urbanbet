@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 
 from .models import User
+from .cloudinary_service import is_cloudinary_configured, upload_avatar_image
 from .serializers import (
     RegisterSerializer,
     LoginSerializer,
@@ -113,6 +114,63 @@ class ProfileView(generics.RetrieveUpdateAPIView):
 
     def patch(self, request, *args, **kwargs):
         return self.put(request, *args, **kwargs)
+
+
+class AvatarUploadView(APIView):
+    MAX_FILE_SIZE = 2 * 1024 * 1024
+    ALLOWED_CONTENT_TYPES = {
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/gif',
+    }
+
+    def post(self, request):
+        if not is_cloudinary_configured():
+            return Response(
+                {
+                    'detail': (
+                        'Cloudinary is not configured. Set CLOUDINARY_CLOUD_NAME, '
+                        'CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET in backend/.env.'
+                    ),
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        uploaded_file = request.FILES.get('avatar')
+        if not uploaded_file:
+            return Response({'avatar': 'No image file provided.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if uploaded_file.content_type not in self.ALLOWED_CONTENT_TYPES:
+            return Response(
+                {'avatar': 'Unsupported image type. Use JPEG, PNG, WEBP, or GIF.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if uploaded_file.size > self.MAX_FILE_SIZE:
+            return Response(
+                {'avatar': 'Image must be 2 MB or smaller.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            secure_url = upload_avatar_image(file_obj=uploaded_file, user_id=request.user.id)
+        except Exception as exc:
+            return Response(
+                {'detail': f'Cloudinary upload failed: {exc}'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        request.user.avatar = secure_url
+        request.user.save(update_fields=['avatar'])
+
+        return Response(
+            {
+                'avatar': secure_url,
+                'user': UserProfileSerializer(request.user).data,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ChangePasswordView(APIView):

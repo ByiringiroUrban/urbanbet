@@ -58,6 +58,7 @@ class Transaction(models.Model):
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default=CURRENCY_RWF)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
     reference = models.CharField(max_length=100, blank=True)
+    pawapay_id = models.CharField(max_length=36, blank=True, db_index=True)
     description = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

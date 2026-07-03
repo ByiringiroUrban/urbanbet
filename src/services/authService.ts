@@ -142,6 +142,16 @@ export const updateProfile = async (data: any): Promise<any> => {
   });
 };
 
+export const uploadAvatar = async (file: File): Promise<{ avatar: string; user: any }> => {
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  return await apiFetch('/auth/profile/avatar/', {
+    method: 'POST',
+    body: formData,
+  });
+};
+
 export const changePassword = async (data: any): Promise<any> => {
   return await apiFetch('/auth/change-password/', {
     method: 'POST',

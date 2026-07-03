@@ -23,6 +23,8 @@ export interface PaymentRequestData {
 // Interface for payment response
 export interface PaymentResponse {
   success: boolean;
+  pending?: boolean;
+  status?: 'pending' | 'completed' | 'failed';
   transactionId?: string;
   message: string;
   redirectUrl?: string;
@@ -40,6 +42,54 @@ export interface TransactionRecord {
   method?: string;
   reference?: string;
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+export const syncTransactionStatus = async (transactionId: string): Promise<PaymentResponse> => {
+  try {
+    const response = await apiFetch(`/payments/${transactionId}/sync/`, {
+      method: 'POST',
+    });
+
+    return {
+      success: Boolean(response?.success),
+      pending: Boolean(response?.pending),
+      status: response?.status,
+      transactionId: String(response?.transaction_id ?? transactionId),
+      message: response?.message || 'Transaction updated.',
+    };
+  } catch (error) {
+    console.error('Transaction sync error:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unable to refresh transaction status.',
+    };
+  }
+};
+
+export const waitForTransactionCompletion = async (
+  transactionId: string,
+  {
+    attempts = 10,
+    intervalMs = 3000,
+  }: { attempts?: number; intervalMs?: number } = {},
+): Promise<PaymentResponse> => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const result = await syncTransactionStatus(transactionId);
+    if (!result.pending) {
+      return result;
+    }
+    await sleep(intervalMs);
+  }
+
+  return {
+    success: true,
+    pending: true,
+    transactionId,
+    status: 'pending',
+    message: 'Payment is still processing. Check your transaction history shortly.',
+  };
+};
 
 // Main payment processing function for deposit
 export const processPayment = async (data: PaymentRequestData): Promise<PaymentResponse> => {
@@ -59,11 +109,24 @@ export const processPayment = async (data: PaymentRequestData): Promise<PaymentR
     });
 
     if (response && response.success) {
-      // Dispatch event to notify layout/navbar that balance changed
+      const transactionId = String(response.transaction_id);
+
+      if (response.pending) {
+        const finalResult = await waitForTransactionCompletion(transactionId);
+        if (finalResult.success && !finalResult.pending) {
+          window.dispatchEvent(new CustomEvent('authChange'));
+        }
+        return {
+          ...finalResult,
+          transactionId,
+        };
+      }
+
       window.dispatchEvent(new CustomEvent('authChange'));
       return {
         success: true,
-        transactionId: String(response.transaction_id),
+        transactionId,
+        status: response.status || 'completed',
         message: response.message
       };
     }
@@ -102,11 +165,24 @@ export const withdrawFunds = async (data: {
     });
 
     if (response && response.success) {
-      // Dispatch event to notify layout/navbar that balance changed
+      const transactionId = String(response.transaction_id);
+
+      if (response.pending) {
+        const finalResult = await waitForTransactionCompletion(transactionId);
+        if (finalResult.success && !finalResult.pending) {
+          window.dispatchEvent(new CustomEvent('authChange'));
+        }
+        return {
+          ...finalResult,
+          transactionId,
+        };
+      }
+
       window.dispatchEvent(new CustomEvent('authChange'));
       return {
         success: true,
-        transactionId: String(response.transaction_id),
+        transactionId,
+        status: response.status || 'completed',
         message: response.message
       };
     }

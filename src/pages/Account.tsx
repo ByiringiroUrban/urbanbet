@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LockKeyhole, Bell, Shield, User as UserIcon, Upload, Eye, EyeOff } from "lucide-react";
 import DeleteAccountDialog from "@/components/DeleteAccountDialog";
-import { getProfile, updateProfile, changePassword } from "@/services/authService";
+import { getProfile, updateProfile, changePassword, uploadAvatar } from "@/services/authService";
 
 const Account = () => {
   const { toast } = useToast();
@@ -175,19 +175,6 @@ const Account = () => {
     }
   };
   
-  const generateCloudinarySignature = async (params: Record<string, string | number>, apiSecret: string) => {
-    const sortedKeys = Object.keys(params).sort();
-    const parts = sortedKeys.map(key => `${key}=${params[key]}`);
-    const stringToSign = parts.join('&') + apiSecret;
-    
-    const encoder = new TextEncoder();
-    const data = encoder.encode(stringToSign);
-    const hashBuffer = await crypto.subtle.digest('SHA-1', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    return hashHex;
-  };
-
   const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -212,55 +199,11 @@ const Account = () => {
       return;
     }
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-    const apiKey = import.meta.env.VITE_CLOUDINARY_API_KEY;
-    const apiSecret = import.meta.env.VITE_CLOUDINARY_API_SECRET;
-
-    if (!cloudName) {
-      toast({
-        title: "Cloudinary Cloud Name missing",
-        description: "Please configure VITE_CLOUDINARY_CLOUD_NAME in .env.local to enable upload features.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsUploadingAvatar(true);
 
     try {
-      const timestamp = Math.round(new Date().getTime() / 1000);
-      
-      // Calculate Cloudinary upload signature
-      const params = { timestamp };
-      const signature = await generateCloudinarySignature(params, apiSecret);
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", apiKey);
-      formData.append("timestamp", String(timestamp));
-      formData.append("signature", signature);
-
-      // Post file to Cloudinary API
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error?.message || "Failed to upload file to Cloudinary.");
-      }
-
-      const uploadData = await response.json();
-      const secureUrl = uploadData.secure_url;
-
-      // Update avatar address on backend
-      const updatedProfile = await updateProfile({
-        name,
-        phone,
-        currency,
-        avatar: secureUrl,
-      });
+      const result = await uploadAvatar(file);
+      const secureUrl = result.avatar;
 
       setAvatarUrl(secureUrl);
       localStorage.setItem("userAvatar", secureUrl);
@@ -281,6 +224,7 @@ const Account = () => {
       });
     } finally {
       setIsUploadingAvatar(false);
+      event.target.value = "";
     }
   };
 

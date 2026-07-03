@@ -51,8 +51,6 @@ class SocialLoginSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    avatar = serializers.SerializerMethodField()
-
     class Meta:
         model = User
         fields = [
@@ -61,20 +59,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'email', 'balance', 'role', 'provider', 'date_joined', 'last_login']
 
-    def get_avatar(self, obj):
-        if not obj.avatar:
-            return None
-        avatar_str = str(obj.avatar)
-        if avatar_str.startswith('http://') or avatar_str.startswith('https://'):
-            return avatar_str
-        request = self.context.get('request')
-        if request:
-            return request.build_absolute_uri(obj.avatar.url)
-        return obj.avatar.url
-
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
-    avatar = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    avatar = serializers.URLField(required=False, allow_null=True, allow_blank=True)
 
     class Meta:
         model = User
@@ -83,6 +70,8 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
     def validate_avatar(self, value):
         if not value:
             return None
+        if not value.startswith('https://'):
+            raise serializers.ValidationError('Avatar must be a secure HTTPS URL.')
         return value
 
 

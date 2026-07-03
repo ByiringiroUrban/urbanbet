@@ -37,7 +37,7 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = [
             'id', 'user', 'user_email', 'transaction_type', 'method',
-            'amount', 'currency', 'status', 'reference',
+            'amount', 'currency', 'status', 'reference', 'pawapay_id',
             'description', 'phone_number', 'created_at',
         ]
         read_only_fields = ['id', 'user', 'status', 'reference', 'created_at']

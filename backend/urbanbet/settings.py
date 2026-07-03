@@ -156,6 +156,20 @@ SPECTACULAR_SETTINGS = {
 
 EXCHANGE_RATE_USD_TO_RWF = config('EXCHANGE_RATE_USD_TO_RWF', default=1200, cast=int)
 
+# Cloudinary (avatar uploads)
+CLOUDINARY_CLOUD_NAME = config('CLOUDINARY_CLOUD_NAME', default='')
+CLOUDINARY_API_KEY = config('CLOUDINARY_API_KEY', default='')
+CLOUDINARY_API_SECRET = config('CLOUDINARY_API_SECRET', default='')
+CLOUDINARY_AVATAR_FOLDER = config('CLOUDINARY_AVATAR_FOLDER', default='urbanbet/avatars')
+
+# PawaPay (sandbox by default — switch base URL + token for production)
+PAWAPAY_ENABLED = config('PAWAPAY_ENABLED', default=True, cast=bool)
+PAWAPAY_API_TOKEN = config('PAWAPAY_API_TOKEN', default='')
+PAWAPAY_BASE_URL = config(
+    'PAWAPAY_BASE_URL',
+    default='https://api.sandbox.pawapay.io',
+)
+
 # Email Settings for local testing
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'support@urbanbet.com'

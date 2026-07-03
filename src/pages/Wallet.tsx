@@ -161,7 +161,7 @@ const Wallet = () => {
       
       if (paymentResult.success) {
         toast({
-          title: "Deposit successful",
+          title: paymentResult.pending ? "Payment processing" : "Deposit successful",
           description: paymentResult.message,
         });
         
@@ -186,7 +186,7 @@ const Wallet = () => {
       
       if (paymentResult.success) {
         toast({
-          title: "Withdrawal successful",
+          title: paymentResult.pending ? "Withdrawal processing" : "Withdrawal successful",
           description: paymentResult.message,
         });
         
