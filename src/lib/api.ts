@@ -10,7 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://urbanbet-be.vercel.app/api';
 
 let isRefreshing = false;
 let refreshSubscribers: ((token: string) => void)[] = [];
