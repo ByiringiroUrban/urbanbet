@@ -163,14 +163,30 @@ function getErrorMessage(errorData: any): string | null {
     // Check for array of field errors
     const firstKey = Object.keys(errorData)[0];
     if (firstKey) {
-      const fieldErrors = errorData[firstKey];
+      let fieldErrors = errorData[firstKey];
+      let errorMessageText = '';
+      
       if (Array.isArray(fieldErrors) && fieldErrors.length > 0) {
-        return `${firstKey}: ${fieldErrors[0]}`;
+        errorMessageText = fieldErrors[0];
       } else if (typeof fieldErrors === 'string') {
-        return `${firstKey}: ${fieldErrors}`;
+        errorMessageText = fieldErrors;
       } else if (typeof fieldErrors === 'object' && fieldErrors !== null) {
         return getErrorMessage(fieldErrors);
       }
+      
+      // If it's a non_field_errors (like login failure), just return the message
+      if (firstKey === 'non_field_errors' || firstKey === 'detail') {
+        return errorMessageText;
+      }
+      
+      // Otherwise, format the key nicely (e.g., 'first_name' -> 'First name')
+      const formattedKey = firstKey
+        .replace(/_/g, ' ')
+        .replace(/([A-Z])/g, ' $1')
+        .toLowerCase()
+        .replace(/^./, str => str.toUpperCase());
+        
+      return `${formattedKey}: ${errorMessageText}`;
     }
   }
   return null;
