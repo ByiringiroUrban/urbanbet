@@ -27,6 +27,7 @@ import {
   AlertCircle,
   Info,
   Shield,
+  Trophy,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab }: Admin
       title: "MANAGEMENT",
       items: [
         { id: "events", label: "Events / Matches", icon: Calendar },
+        { id: "sports", label: "Sports & Leagues", icon: Trophy },
         { id: "casino", label: "Casino Games", icon: Gamepad2 },
         { id: "predictions", label: "AI Predictions", icon: BrainCircuit },
         { id: "bets", label: "Bet Slips", icon: Ticket },
@@ -165,7 +167,7 @@ export default function AdminLayout({ children, activeTab, setActiveTab }: Admin
   );
 
   return (
-    <div className={cn("min-h-screen flex bg-[#03050a] text-slate-100 antialiased", darkMode ? "dark" : "")}>
+    <div className={cn("h-screen flex overflow-hidden bg-[#03050a] text-slate-100 antialiased", darkMode ? "dark" : "")}>
 
       {/* ─── Sidebar Desktop ─── */}
       <aside className="hidden lg:flex flex-col w-64 shrink-0 bg-[#070a13] border-r border-slate-800/80 sticky top-0 h-screen z-20">

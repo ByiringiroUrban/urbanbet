@@ -10,6 +10,7 @@ import AdminRisk from "@/components/admin/AdminRisk";
 import AdminTransactions from "@/components/admin/AdminTransactions";
 import AdminCasinoGames from "@/components/admin/AdminCasinoGames";
 import AdminPredictions from "@/components/admin/AdminPredictions";
+import AdminSports from "@/components/admin/AdminSports";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -96,6 +97,8 @@ export default function Admin() {
         return <AdminDashboard />;
       case "events":
         return <AdminEvents />;
+      case "sports":
+        return <AdminSports />;
       case "casino":
         return <AdminCasinoGames />;
       case "predictions":

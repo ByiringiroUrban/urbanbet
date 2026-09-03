@@ -3,8 +3,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Users, CircleDollarSign, Calendar, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Users, CircleDollarSign, Calendar, TrendingUp, ArrowUpRight, ArrowDownRight, Activity } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -16,6 +18,7 @@ export default function AdminDashboard() {
     monthlyChange: -2.5  // Mock data
   });
   
+  const [recentBets, setRecentBets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [timeRange, setTimeRange] = useState("week");
   const { toast } = useToast();
@@ -59,6 +62,11 @@ export default function AdminDashboard() {
       // 3. Fetch active events count
       const eventsData = await apiFetch('/sports/events/');
       const activeEvents = eventsData?.count ?? toArray(eventsData).length;
+      
+      // 4. Fetch recent bets
+      const recentBetsData = await apiFetch('/bets/admin/all/');
+      const latestBets = toArray(recentBetsData).slice(0, 5);
+      setRecentBets(latestBets);
       
       setStats({
         totalUsers,
@@ -200,119 +208,200 @@ export default function AdminDashboard() {
             </Card>
           </div>
           
-          {/* Charts */}
           <Card className="bg-gradient-to-b from-bet-dark-accent/50 to-bet-dark/80 border-white/5 shadow-xl mt-8">
-            <CardHeader className="pb-0">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                  <CardTitle className="text-xl">Performance Metrics</CardTitle>
-                  <CardDescription>Overview of revenue and betting activity</CardDescription>
+            <Tabs defaultValue="revenue" className="w-full">
+              <CardHeader className="pb-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                  <div>
+                    <CardTitle className="text-xl">Performance Metrics</CardTitle>
+                    <CardDescription className="text-slate-400">Overview of revenue and betting activity over time</CardDescription>
+                  </div>
+                  <div className="w-full md:w-auto">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                    <TabsList className="grid grid-cols-2 w-full md:w-[240px] bg-[#070a13] border border-slate-800 rounded-lg p-1">
+                      <TabsTrigger value="revenue" className="data-[state=active]:bg-bet-primary/10 data-[state=active]:text-bet-primary rounded-md font-bold text-xs uppercase tracking-wider">Revenue</TabsTrigger>
+                      <TabsTrigger value="bets" className="data-[state=active]:bg-bet-primary/10 data-[state=active]:text-bet-primary rounded-md font-bold text-xs uppercase tracking-wider">Bets</TabsTrigger>
+                    </TabsList>
+                    <div className="bg-[#070a13] border border-slate-800 rounded-lg p-1 flex">
+                      <button 
+                        onClick={() => setTimeRange("week")}
+                        className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${timeRange === "week" ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"}`}
+                      >
+                        Daily
+                      </button>
+                      <button 
+                        onClick={() => setTimeRange("month")}
+                        className={`px-4 py-1.5 text-xs font-bold uppercase tracking-wider rounded-md transition-colors ${timeRange === "month" ? "bg-white/10 text-white" : "text-slate-500 hover:text-white"}`}
+                      >
+                        Weekly
+                      </button>
+                    </div>
+                    </div>
+                  </div>
                 </div>
-                <Tabs defaultValue="revenue" className="w-full md:w-auto">
-                  <TabsList className="grid grid-cols-2 w-full md:w-[240px] bg-black/40 border border-white/5">
-                    <TabsTrigger value="revenue" className="data-[state=active]:bg-bet-primary data-[state=active]:text-black">Revenue</TabsTrigger>
-                    <TabsTrigger value="bets" className="data-[state=active]:bg-bet-primary data-[state=active]:text-black">Bets</TabsTrigger>
-                  </TabsList>
-                  
-                  <div className="mt-6 h-[400px]">
-                    <TabsContent value="revenue" className="h-full mt-0">
-                      <div className="flex justify-end mb-4">
-                        <div className="bg-black/30 rounded-lg p-1 border border-white/5 inline-flex">
-                          <button 
-                            onClick={() => setTimeRange("week")}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeRange === "week" ? "bg-white/10 text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
-                          >
-                            Daily
-                          </button>
-                          <button 
-                            onClick={() => setTimeRange("month")}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeRange === "month" ? "bg-white/10 text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
-                          >
-                            Weekly
-                          </button>
-                        </div>
-                      </div>
-                      <ResponsiveContainer width="100%" height="90%">
-                        <LineChart
+              </CardHeader>
+              
+              <CardContent>
+                <div className="h-[400px] w-full">
+                  <TabsContent value="revenue" className="h-full mt-0 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
                           data={timeRange === "week" ? dailyData : weeklyData}
-                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                         >
                           <defs>
                             <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#a3e635" stopOpacity={0.3}/>
+                              <stop offset="5%" stopColor="#a3e635" stopOpacity={0.4}/>
                               <stop offset="95%" stopColor="#a3e635" stopOpacity={0}/>
                             </linearGradient>
                           </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                          <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                          <XAxis 
+                            dataKey="name" 
+                            stroke="#64748b" 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            dy={10}
+                          />
                           <YAxis 
-                            stroke="#888888" 
+                            stroke="#64748b" 
                             fontSize={12} 
                             tickLine={false} 
                             axisLine={false} 
                             tickFormatter={(value) => `${value / 1000}k`}
+                            dx={-10}
                           />
                           <Tooltip 
-                            contentStyle={{ backgroundColor: '#20222a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
-                            itemStyle={{ color: '#fff' }}
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                            itemStyle={{ color: '#fff', fontWeight: 'bold' }}
                             formatter={(value: number) => [`${value.toLocaleString()} RWF`, "Revenue"]}
+                            cursor={{ stroke: '#a3e635', strokeWidth: 1, strokeDasharray: '5 5' }}
                           />
-                          <Line 
+                          <Area 
                             type="monotone" 
                             dataKey="revenue" 
                             name="Revenue" 
                             stroke="#a3e635" 
                             strokeWidth={3}
-                            dot={{ r: 4, fill: "#20222a", strokeWidth: 2, stroke: "#a3e635" }}
-                            activeDot={{ r: 6, fill: "#a3e635", stroke: "#fff", strokeWidth: 2 }} 
+                            fillOpacity={1} 
+                            fill="url(#colorRevenue)"
+                            activeDot={{ r: 6, fill: "#a3e635", stroke: "#0f172a", strokeWidth: 3 }} 
                           />
-                        </LineChart>
+                        </AreaChart>
                       </ResponsiveContainer>
                     </TabsContent>
                     
-                    <TabsContent value="bets" className="h-full mt-0">
-                      <div className="flex justify-end mb-4">
-                        <div className="bg-black/30 rounded-lg p-1 border border-white/5 inline-flex">
-                          <button 
-                            onClick={() => setTimeRange("week")}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeRange === "week" ? "bg-white/10 text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
-                          >
-                            Daily
-                          </button>
-                          <button 
-                            onClick={() => setTimeRange("month")}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${timeRange === "month" ? "bg-white/10 text-white shadow-sm" : "text-muted-foreground hover:text-white"}`}
-                          >
-                            Weekly
-                          </button>
-                        </div>
-                      </div>
-                      <ResponsiveContainer width="100%" height="90%">
+                    <TabsContent value="bets" className="h-full mt-0 w-full">
+                      <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={timeRange === "week" ? dailyData : weeklyData}
-                          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                          margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                          barSize={32}
                         >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                          <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                          <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                          <defs>
+                            <linearGradient id="colorBets" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stopColor="#3b82f6" stopOpacity={1}/>
+                              <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                          <XAxis 
+                            dataKey="name" 
+                            stroke="#64748b" 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            dy={10}
+                          />
+                          <YAxis 
+                            stroke="#64748b" 
+                            fontSize={12} 
+                            tickLine={false} 
+                            axisLine={false} 
+                            dx={-10}
+                          />
                           <Tooltip 
-                            contentStyle={{ backgroundColor: '#20222a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
-                            cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #1e293b', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' }}
+                            cursor={{ fill: 'rgba(59, 130, 246, 0.1)' }}
+                            itemStyle={{ color: '#fff', fontWeight: 'bold' }}
+                            formatter={(value: number) => [value, "Bets Placed"]}
                           />
                           <Bar 
                             dataKey="bets" 
                             name="Number of Bets" 
-                            fill="#10B981" 
-                            radius={[4, 4, 0, 0]} 
+                            fill="url(#colorBets)" 
+                            radius={[6, 6, 0, 0]} 
                           />
                         </BarChart>
                       </ResponsiveContainer>
                     </TabsContent>
                   </div>
-                </Tabs>
-              </div>
-            </CardHeader>
-          </Card>
+                </CardContent>
+              </Tabs>
+            </Card>
+          
+          {/* Recent Activity Table */}
+          <div className="mt-8 mb-4">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-bet-primary" />
+              Recent Activity
+            </h3>
+            <div className="border border-slate-800 rounded-xl overflow-hidden bg-[#070a13]">
+              <Table>
+                <TableHeader className="bg-[#0a0e1b]">
+                  <TableRow className="border-slate-800">
+                    <TableHead className="text-slate-400">Bet ID</TableHead>
+                    <TableHead className="text-slate-400">User</TableHead>
+                    <TableHead className="text-slate-400">Amount</TableHead>
+                    <TableHead className="text-slate-400">Total Odds</TableHead>
+                    <TableHead className="text-slate-400">Potential Win</TableHead>
+                    <TableHead className="text-slate-400">Status</TableHead>
+                    <TableHead className="text-right text-slate-400">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentBets.map(bet => (
+                    <TableRow key={bet.id} className="border-slate-800 hover:bg-slate-900/30">
+                      <TableCell className="font-mono text-xs text-slate-400">#{bet.id}</TableCell>
+                      <TableCell className="font-medium text-white text-xs">{bet.user_email || `User ${bet.user}`}</TableCell>
+                      <TableCell className="font-bold text-white text-xs">{Number(bet.amount).toLocaleString()} {bet.currency || 'RWF'}</TableCell>
+                      <TableCell className="font-mono text-bet-primary text-xs">{Number(bet.total_odds).toFixed(2)}</TableCell>
+                      <TableCell className="text-emerald-400 font-bold text-xs">{Number(bet.potential_winnings).toLocaleString()} {bet.currency || 'RWF'}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline" 
+                          className={`
+                            ${bet.status === 'won' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : ''}
+                            ${bet.status === 'lost' ? 'bg-red-500/10 text-red-500 border-red-500/20' : ''}
+                            ${bet.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20' : ''}
+                            ${bet.status === 'cancelled' ? 'bg-slate-500/10 text-slate-400 border-slate-500/20' : ''}
+                          `}
+                        >
+                          {bet.status.toUpperCase()}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right text-xs text-slate-400">
+                        {new Date(bet.created_at).toLocaleString(undefined, { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          hour: '2-digit', 
+                          minute: '2-digit' 
+                        })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {recentBets.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-slate-500">
+                        No recent bets found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
         </>
       )}
     </div>
